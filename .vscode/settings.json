@@ -1,0 +1,9 @@
+// Normally I gitignore this file, but I'm including it here to prevent an issue with rust-analyzer.
+
+{
+    "rust-analyzer.checkOnSave.allTargets": false,
+    "rust-analyzer.checkOnSave.extraArgs": [
+        "--target",
+        "thumbv7em-none-eabihf"
+    ]
+}
