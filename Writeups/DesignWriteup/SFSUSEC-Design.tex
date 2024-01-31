@@ -51,21 +51,41 @@ We plan to meet the functional requirements by doing x, y, and z.
 \section{Security Requirements}
 
 \subsection{Security Requirement 1}
-Security Requirement 1 requires us to ensure the Application Processor will not boot unless
+Security Requirement 1 (\textbf{SR1}) requires us to ensure the Application Processor will not boot unless
 expected components are present and valid. Our plan for this involves a two-pronged approach
 which uses public/private key encryption and a secure cryptographic nonce.
 
 During the build process, we will generate a public/private key pair. The public key will be
 flashed onto the components, and the private key will be stored in the application processor.
 Additionally, a random seed will be generated using /dev/urandom and stored in the application
-processor. This seed will be used to generate a cryptographic nonce which will be sent to the
-components. The components will use the public key to encrypt the nonce along with their own
-unique identifier and send it back to the application processor. The application processor will
-use the private key to decrypt the nonce and verify that it matches the original nonce. If the
-nonces match, the application processor will know that the components are valid and will boot.
-If no message is received, or the nonces do not match, the application processor will not boot.
+processor. This seed will be used by the components and the application processor to generate
+and validate cryptographic nonces.
 
-Once the application processor 
+The components will use the public key to encrypt the nonce along with their own
+unique identifier and send it back to the application processor over I2C bus. The application
+processor will use the private key to decrypt the nonce and verify that it matches the original
+nonce. If the nonces match, the application processor will know that the components are valid
+and will continue with boot. If no message is received, or the nonces do not match, the application
+processor will not boot.
+
+\subsection{Security Requirement 2}
+Security Requirement 2 (\textbf{SR2}) requires us to ensure that the components will not boot until commanded
+to do so by an Application Processor that has validated the integrity of the system. Our plan to
+meet this requirement is much the same as the plan for Security Requirement 1, but in reverse.
+
+During the build process, a random seed will be burned onto the firmware as delineated in 
+SR1. In addition, each component will receive a public/private key pair similar to the AP's.
+This key will be used to encrypt messages before transmitting them over the I2C bus, as well
+as to verify digital signatures.
+
+After the application processor verifies the message sent by the components as delineated
+in SR1, it will return an acknowledgement, encrypted with the component's public key. Upon
+receipt of this acknowledgement, the component will use its private key to decrypt the 
+message and validate its digital signature. From there, the nonce will be checked against
+the random key generator. If the message is not present, the digital signature is invalid,
+or the nonce verification fails, the component will immediately halt the boot process.
+Conversely, if all checks pass - suggesting the AP successfully validated the components -
+the component will proceed with the boot sequence.
 
 % REFERENCE LIST
 %   - use \thebibliography and \bibitems to enter references, no separate .bib
