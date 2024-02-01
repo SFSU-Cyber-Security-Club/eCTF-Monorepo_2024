@@ -43,15 +43,25 @@ psuedo-random token seeds, and hash digests - all of which can be generated and 
 \section{Functional Requirements}
 
 \subsection{Build Environment}
-For the purpose of preventing bugs and keeping safe coding standards, the programming language that will be used is Rust
+
+For the purpose of preventing bugs and keeping safe coding standards, the Rust programming language will be used.
+This compromise will involve improvising the current build environment used in the original design reference that was given to the team by the organizers.
 
 \subsection{Attest}
 
+
+
 \subsection{Replace}
+
+
 
 \subsection{Boot}
 
+
+
 \subsection{Secure Communication}
+
+
 
 \section{Security Requirements}
 
@@ -92,9 +102,28 @@ or the nonce verification fails, the component will immediately halt the boot pr
 Conversely, if all checks pass - suggesting the AP successfully validated the components -
 the component will proceed with the boot sequence.
 
+\subsection{Security Requirement 3}
+
+Security Requirement 3 (\textbf{SR3}) Requires that the Attestation PINs and Replacement Tokens are kept confidential.
+To accomplish this, we will hash and salt the secrets to prevent the plaintext versions from being exfiltrated.
+It's unrealistic, given physical access to the machine, to expect that we can fully prevent the memory holding
+the secrets from being extracted from the device. However, by using SHA256, we can make the data useless to the
+attacker. By salting the PINs using a special token generated at compile time, we can prevent the use of a rainbow
+table to get around the hashing. Only an authorized personal with the secret PIN is able to extract the attestation data.
+
+
+\subsection{Security Requirement 4}
+
+Security requirement 4 (\textbf{SR4}) states that the attestation data is to be kept confidential and secure from unauthorized changes.
+ Assuming that an attacker has the ability to modify the data directly, fulfilling this requirement can be done by encrypting 
+ the attestation data with the public key of the AP and embedding the data with its hash digest. Whenever an authorized user 
+ requests the attestation data, the AP first decrypts the data received by the component and then verifies the integrity by 
+ matching the resulting hash of the data with the embedded digest that went along with it. This technique is inspired by modern 
+ message authentication, with message authentication codes (MAC) that ensure the integrity of data whenever in transit.
+
 % REFERENCE LIST
 %   - use \thebibliography and \bibitems to enter references, no separate .bib
-%     files
+%     files (NOTE FROM MICHAEL : YES WE NEED THIS)
 %   - use normal font for *everything* (no bold typefaces etc.)
 %   - shorten the last page number, i.e. 51--9 for pages 51--59
 %   - for more than 6 authors the first 6 should be listed followed by et al.
@@ -114,6 +143,7 @@ the component will proceed with the boot sequence.
 %       D.L. Eaton, Porous Glass Support Material, US Patent No. 3 904 422 
 %       (1975).
 %   \end{thebibliography}
+
 \begin{thebibliography}{99}
 	\bibitem{scholes-DiscussFaradaySoc-70}
 	S. Scholes, Discuss. Faraday Soc. No. 50 (1970) 222.
