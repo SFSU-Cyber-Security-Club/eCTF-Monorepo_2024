@@ -33,20 +33,25 @@ aim to withstand all attack scenarios presented by the MITRE documentation, as w
 
 \section{Introduction}
 
-Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Sed posuere interdum
-sem. Quisque ligula eros ullamcorper quis, lacinia quis facilisis sed sapien.
-Mauris varius diam vitae arcu. Sed arcu lectus auctor vitae, consectetuer et
-venenatis eget velit. Sed augue orci, lacinia eu tincidunt et eleifend nec
-lacus. Donec ultricies nisl ut felis, suspendisse potenti. Lorem ipsum ligula
-ut hendrerit mollis, ipsum erat vehicula risus, eu suscipit sem libero nec
-erat. Aliquam erat volutpat. Sed congue augue vitae neque. Nulla consectetuer
-porttitor pede. Fusce purus morbi tortor magna condimentum vel, placerat id
-blandit sit amet tortor.
-
+The aim for this project is to create a device that can communicate securely and validate components within itself for integrity and authenticity.
+In developing and implementing a MISC secure medical device, our team found that cryptography
+provided the strongest protection against most attack scenarios and fulfilled much of the requirements
+that demanded confidentiality, integrity, and authenticity. Although our design appears bullet-proof, there are still
+some fundemental flaws that, as will be discussed later, can only be mitigated rather than completely resolved. Our methods of encryption will comprise of elliptic curve key pairs, 
+psuedo-random token seeds, and hash digests - all of which can be generated and derived from the build deployment.
 
 \section{Functional Requirements}
 
-We plan to meet the functional requirements by doing x, y, and z.
+\subsection{Build Environment}
+For the purpose of preventing bugs and keeping safe coding standards, the programming language that will be used is Rust
+
+\subsection{Attest}
+
+\subsection{Replace}
+
+\subsection{Boot}
+
+\subsection{Secure Communication}
 
 \section{Security Requirements}
 
