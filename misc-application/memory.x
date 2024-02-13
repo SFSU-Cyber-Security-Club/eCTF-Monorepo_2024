@@ -1,141 +1,35 @@
-MEMORY {
-    ROM         (rx) : ORIGIN = 0x00000000, LENGTH = 0x00010000 /* 64kB ROM */
-    BOOTLOADER  (rx) : ORIGIN = 0x10000000, LENGTH = 0x0000E000 /* Bootloader flash */
-    FLASH       (rx) : ORIGIN = 0x1000E000, LENGTH = 0x00038000 /* Location of team firmware */
-    RESERVED    (rw) : ORIGIN = 0x10046000, LENGTH = 0x00038000 /* Reserved */
-    ROM_BL_PAGE (rw) : ORIGIN = 0x1007E000, LENGTH = 0x00002000 /* Reserved */
-    RAM        (rwx): ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 128kB RAM */
+MEMORY
+{
+  /* NOTE 1 K = 1 KiBi = 1024 bytes */
+  /* TODO Adjust these memory regions to match your device memory layout */
+  /* These values correspond to the LM3S6965, one of the few devices QEMU can emulate */
+  FLASH : ORIGIN = 0x00000000, LENGTH = 256K
+  RAM : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
-SECTIONS {
-    .rom :
-    {
-        KEEP(*(.rom_vector))
-        *(.rom_handlers*)
-    } > ROM
-    
-    /* Binary import */
-    .bin_storage :
-    {
-       FILL(0xFF)
-      _bin_start_ = .;
-      KEEP(*(.bin_storage_img))
-      _bin_end_ = .;
-      . = ALIGN(4);
-    } > FLASH
-    
-    .rom_code :
-    {
-        . = ALIGN(16);
-        _sran_code = .;
-        *(.rom_code_section)
-        _esran_code = .;
-    } > ROM
+/* This is where the call stack will be allocated. */
+/* The stack is of the full descending type. */
+/* You may want to use this variable to locate the call stack and static
+   variables in different memory regions. Below is shown the default value */
+/* _stack_start = ORIGIN(RAM) + LENGTH(RAM); */
 
-    .flash_code :
-    {
-        . = ALIGN(16);
-        _sran_code = .;
-        *(.flash_code_section)
-        _esran_code = .;
-    } > FLASH
+/* You can use this symbol to customize the location of the .text section */
+/* If omitted the .text section will be placed right after the .vector_table
+   section */
+/* This is required only on microcontrollers that store some configuration right
+   after the vector table */
+/* _stext = ORIGIN(FLASH) + 0x400; */
 
-    .ram_code :
-    {
-        . = ALIGN(16);
-        _sran_code = .;
-        *(.ram_code_section)
-        _esran_code = .;
-    } > RAM
-
-    /* it's used for C++ exception handling      */
-    /* we need to keep this to avoid overlapping */
-    .ARM.exidx :
-    {
-        __exidx_start = .;
-        *(.ARM.exidx*)
-        __exidx_end = .;
-    } > FLASH
-
-    .data :
-    {
-        _data = ALIGN(., 4);
-        *(.data*)           /*read-write initialized data: initialized global variable*/
-        *(.flashprog*)      /* Flash program */
-
-        /* These array sections are used by __libc_init_array to call static C++ constructors */
-        . = ALIGN(4);
-        /* preinit data */
-        PROVIDE_HIDDEN (__preinit_array_start = .);
-        KEEP(*(.preinit_array))
-        PROVIDE_HIDDEN (__preinit_array_end = .);
-
-        . = ALIGN(4);
-        /* init data */
-        PROVIDE_HIDDEN (__init_array_start = .);
-        KEEP(*(SORT(.init_array.*)))
-        KEEP(*(.init_array))
-        PROVIDE_HIDDEN (__init_array_end = .);
-
-        . = ALIGN(4);
-        /* finit data */
-        PROVIDE_HIDDEN (__fini_array_start = .);
-        KEEP(*(SORT(.fini_array.*)))
-        KEEP(*(.fini_array))
-        PROVIDE_HIDDEN (__fini_array_end = .);
-
-        _edata = ALIGN(., 4);
-    } > RAM AT>FLASH
-    __load_data = LOADADDR(.data);
-
-    .bss :
-    {
-        . = ALIGN(4);
-        _bss = .;
-        *(.bss*)     /*read-write zero initialized data: uninitialzed global variable*/
-        *(COMMON)
-        _ebss = ALIGN(., 4);
-    } > RAM
-
-    .shared :
-    {
-        . = ALIGN(4);
-        _shared = .;
-        *(.mailbox*)
-        . = ALIGN(4);
-        *(.shared*)     /*read-write zero initialized data: uninitialzed global variable*/
-        _eshared = ALIGN(., 4);
-    } > RAM
-    __shared_data = LOADADDR(.shared);
-
-    /* Set stack top to end of RAM, and stack limit move down by
-     * size of stack_dummy section */
-    __StackTop = ORIGIN(RAM) + LENGTH(RAM);
-    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
-
-    /* .stack_dummy section doesn't contains any symbols. It is only
-     * used for linker to calculate size of stack sections, and assign
-     * values to stack symbols later */
-    .stack_dummy (COPY):
-    {
-        *(.stack*)
-    } > RAM
-
-    .heap (COPY):
-    {
-        . = ALIGN(4);
-        *(.heap*)
-        __HeapLimit = ABSOLUTE(__StackLimit);
-    } > RAM
-
-    PROVIDE(__stack = __StackTop);
-
-    /* Check if data + heap + stack exceeds RAM limit */
-    ASSERT(__StackLimit >= _ebss, "region RAM overflowed with stack")
-}
-
-
-
-
-
+/* Example of putting non-initialized variables into custom RAM locations. */
+/* This assumes you have defined a region RAM2 above, and in the Rust
+   sources added the attribute `#[link_section = ".ram2bss"]` to the data
+   you want to place there. */
+/* Note that the section will not be zero-initialized by the runtime! */
+/* SECTIONS {
+     .ram2bss (NOLOAD) : ALIGN(4) {
+       *(.ram2bss);
+       . = ALIGN(4);
+     } > RAM2
+   } INSERT AFTER .bss;
+*/
 
