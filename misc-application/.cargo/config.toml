@@ -4,7 +4,11 @@
 # --- Uncomment the next few lines when flashging to a real board ---
 runner = "arm-none-eabi-gdb"
 rustflags = [
-  "-C", "link-arg=-Tlink.x",
+  # "-C", "link-arg=-Tlink.x",
+  "-C", "linker=arm-none-eabi-ld",
+  # "-C", "linker=arm-none-eabi-gcc",
+  # "-C", "link-arg=-Wl,-Tlink.x",
+  # "-C", "link-arg=-nostartfiles",
 ]
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
@@ -22,7 +26,7 @@ rustflags = [
   # By default, the LLD linker is used, which is shipped with the Rust
   # toolchain. If you run into problems with LLD, you can switch to the
   # GNU linker by uncommenting this line:
-  # "-C", "linker=arm-none-eabi-ld",
+  "-C", "linker=arm-none-eabi-ld",
 
   # If you need to link to pre-compiled C libraries provided by a C toolchain
   # use GCC as the linker by uncommenting the three lines below:
