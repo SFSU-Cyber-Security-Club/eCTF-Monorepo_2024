@@ -10,6 +10,18 @@ use panic_halt as _; // you can put a breakpoint on `rust_begin_unwind` to catch
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln};
 
+#[link_section = ".data"]
+static DATA: [u32; 100] = [0; 100];
+
+extern "C" {
+    fn _text();
+    fn _etext();
+    fn _data();
+    fn _edata();
+    fn _bss();
+    fn _ebss();
+}
+
 #[entry]
 fn main() -> ! {
     hprintln!("Hello, world!").unwrap();
