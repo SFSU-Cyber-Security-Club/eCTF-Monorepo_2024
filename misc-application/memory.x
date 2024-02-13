@@ -1,7 +1,10 @@
 MEMORY {
-    ROM        (rx) : ORIGIN = 0x00000000, LENGTH = 0x00010000 /* 64kB ROM */
-    FLASH      (rx) : ORIGIN = 0x10010000, LENGTH = 0x00070000 /* 448KB Flash */
-    SRAM      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 128kB SRAM */
+    ROM         (rx) : ORIGIN = 0x00000000, LENGTH = 0x00010000 /* 64kB ROM */
+    BOOTLOADER  (rx) : ORIGIN = 0x10000000, LENGTH = 0x0000E000 /* Bootloader flash */
+    FLASH       (rx) : ORIGIN = 0x1000E000, LENGTH = 0x00038000 /* Location of team firmware */
+    RESERVED    (rw) : ORIGIN = 0x10046000, LENGTH = 0x00038000 /* Reserved */
+    ROM_BL_PAGE (rw) : ORIGIN = 0x1007E000, LENGTH = 0x00002000 /* Reserved */
+    RAM        (rwx): ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 128kB RAM */
 }
 
 SECTIONS {
@@ -10,23 +13,7 @@ SECTIONS {
         KEEP(*(.rom_vector))
         *(.rom_handlers*)
     } > ROM
-
-    .text :
-    {
-        _text = .;
-        KEEP(*(.isr_vector))
-        KEEP(*(.firmware_startup))
-        *(.text*)    /* program code */
-        *(.rodata*)  /* read-only data: "const" */
-
-        KEEP(*(.init))
-        KEEP(*(.fini))
-
-        /* C++ Exception handling */
-        KEEP(*(.eh_frame*))
-        _etext = .;
-    } > FLASH
-
+    
     /* Binary import */
     .bin_storage :
     {
@@ -53,13 +40,13 @@ SECTIONS {
         _esran_code = .;
     } > FLASH
 
-    .sram_code :
+    .ram_code :
     {
         . = ALIGN(16);
         _sran_code = .;
-        *(.sram_code_section)
+        *(.ram_code_section)
         _esran_code = .;
-    } > SRAM
+    } > RAM
 
     /* it's used for C++ exception handling      */
     /* we need to keep this to avoid overlapping */
@@ -98,7 +85,7 @@ SECTIONS {
         PROVIDE_HIDDEN (__fini_array_end = .);
 
         _edata = ALIGN(., 4);
-    } > SRAM AT>FLASH
+    } > RAM AT>FLASH
     __load_data = LOADADDR(.data);
 
     .bss :
@@ -108,7 +95,7 @@ SECTIONS {
         *(.bss*)     /*read-write zero initialized data: uninitialzed global variable*/
         *(COMMON)
         _ebss = ALIGN(., 4);
-    } > SRAM
+    } > RAM
 
     .shared :
     {
@@ -118,12 +105,12 @@ SECTIONS {
         . = ALIGN(4);
         *(.shared*)     /*read-write zero initialized data: uninitialzed global variable*/
         _eshared = ALIGN(., 4);
-    } > SRAM
+    } > RAM
     __shared_data = LOADADDR(.shared);
 
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */
-    __StackTop = ORIGIN(SRAM) + LENGTH(SRAM);
+    __StackTop = ORIGIN(RAM) + LENGTH(RAM);
     __StackLimit = __StackTop - SIZEOF(.stack_dummy);
 
     /* .stack_dummy section doesn't contains any symbols. It is only
@@ -132,14 +119,14 @@ SECTIONS {
     .stack_dummy (COPY):
     {
         *(.stack*)
-    } > SRAM
+    } > RAM
 
     .heap (COPY):
     {
         . = ALIGN(4);
         *(.heap*)
         __HeapLimit = ABSOLUTE(__StackLimit);
-    } > SRAM
+    } > RAM
 
     PROVIDE(__stack = __StackTop);
 
