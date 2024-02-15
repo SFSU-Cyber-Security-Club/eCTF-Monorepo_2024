@@ -12,7 +12,7 @@ use cortex_m_semihosting::hprintln;
 
 // #[link_section = ".data"]
 //static DATA: [u32; 100] = [0; 100];
-
+/*
 extern "C" {
     fn _text();
     fn _etext();
@@ -20,7 +20,7 @@ extern "C" {
     fn _edata();
     fn _bss();
     fn _ebss();
-}
+}*/
 
 #[entry]
 fn main() -> ! {
