@@ -43,28 +43,31 @@ psuedo-random token seeds, and hash digests - all of which can be generated and 
 
 \subsection{Build Environment}
 
-For the purpose of preventing bugs and keeping safe coding standards, the Rust programming language will be used.
-This will involve improvising the build environment from the design reference so that we can complement Rust's deployment. 
+The design was initially intended to be written in the Rust programming language for its consistency and safety guarantee. However,
+due to the lack of Rust support for the MAX78000 board and the complexities of intertwining it with the reference design's build system, sticking with C 
+is the best option for this design.
+
+ 
 
 \includegraphics[scale=0.75]{./diagramSR1.png}
 
 \subsection{Attest}
 
-When the authorized user enters the correct PIN, a unique sequence of numbers generated during the build deployment, they will be able to 
+When an authorized user enters the correct PIN, a unique sequence of numbers generated during the build deployment, they will be able to 
 retrieve the attestation data through the AP.
 
 \subsection{Replace}
 
 An authorized user with a valid token can change the component ID that the AP is provisioning so long as the device is also provided a new "passcode" that 
-will act as the new seed for the device's nonce to sync correctly.
+will act as the new seed for the device's nonce to sync correctly (see section 3.1).
 
 \subsection{Boot}
 
-When the device boots, the AP and Components will verify each other where it will then be ready to communicate between each other for operation
+When the device boots, the AP and Components will verify each other in a process, described in section 3.1 and 3.2, where it will then be ready to communicate between each other for operation
 
 \subsection{Secure Communication}
 
-Same as above. TBD
+Secure communication will be perform through the I2C protocol. See section 3.5 for specifications.
 
 \section{Security Requirements}
 
