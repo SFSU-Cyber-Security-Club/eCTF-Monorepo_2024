@@ -6,6 +6,11 @@
 # not necessary in the repo
 4c8989pnvxrgs8g3qb1kfx76ki56j0da-source
 
+# Don't include anything in the build file
+build/*
+application_processor/build/*
+component/build/*
+
 # Created by git for backups. To disable backups in Git:
 # $ git config --global mergetool.keepBackup false
 *.orig
