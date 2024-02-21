@@ -1,5 +1,6 @@
+This was initially being used to test Rust code through an emulator rather than flashing.
 qemu-system-arm -cpu cortex-m3 -machine lm3s6965evb -nographic -semihosting-config enable=on,target=native -kernel <target>
 
-For a cortex-M4 cpu (Will not work lol)
 
+Unfortunately, every board has specific memory segments for where the program should be loaded upon flashing. Although not applicable to the competition anymore*, it is still useful for future use in QEMU emulation.
 qemu-system-arm -d in_asm,int,exec,cpu,guest_errors,unimp -S -gdb tcp::1337 -cpu cortex-m4 -machine netduinoplus2 -nographic -kernel ./gdb_challenge.img
