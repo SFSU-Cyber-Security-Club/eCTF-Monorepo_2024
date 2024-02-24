@@ -27,6 +27,7 @@ pkgs.mkShell {
     pkgs.cacert
     # (pkgs.callPackage custom_nix_pkgs/analog_openocd.nix { })
     pkgs.minicom
+    pkgs.wolfssl
   ];
 
   msdk = builtins.fetchGit {

@@ -7,9 +7,9 @@
 4c8989pnvxrgs8g3qb1kfx76ki56j0da-source
 
 # Don't include anything in the build file
-misc-application/build/
-misc-application/application_processor/build/
-misc-application/component/build/
+misc_application/build/
+misc_application/application_processor/build/
+misc_application/component/build/
 
 # Created by git for backups. To disable backups in Git:
 # $ git config --global mergetool.keepBackup false
@@ -79,7 +79,7 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/git,macos,visualstudiocode
 # Get rid of the library code from the main repo, you can acquire that seperately
-msdk
+misc_application/msdk
 
 # avoid changing the pycache
-ectf_tools/__pycache__/
+misc_application/ectf_tools/__pycache__/

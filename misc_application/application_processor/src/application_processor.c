@@ -334,19 +334,20 @@ void boot() {
     char* data = "Crypto Example!";
     uint8_t ciphertext[BLOCK_SIZE];
     uint8_t key[KEY_SIZE];
+    print_info("Works at this phase 1\n");
     
     // Zero out the key
     bzero(key, BLOCK_SIZE);
-
+    print_info("Works at this phase 2\n");
     // Encrypt example data and print out
     encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext); 
     print_debug("Encrypted data: ");
     print_hex_debug(ciphertext, BLOCK_SIZE);
-
+    print_info("Works at this phase 3\n");
     // Hash example encryption results 
     uint8_t hash_out[HASH_SIZE];
     hash(ciphertext, BLOCK_SIZE, hash_out);
-
+    print_info("Works at this phase 4\n");
     // Output hash result
     print_debug("Hash result: ");
     print_hex_debug(hash_out, HASH_SIZE);
