@@ -1,0 +1,4 @@
+From the MITRE eCTF documentation, run the following openocd command to open up a debugger hook to the process running in the hardware
+
+ openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -c "init"
+

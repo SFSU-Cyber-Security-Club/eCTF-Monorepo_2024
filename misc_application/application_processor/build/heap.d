@@ -1,5 +1,5 @@
-/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/application_processor/build/heap.o: \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Source/heap.c \
+/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/application_processor/build/heap.o: \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Source/heap.c \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/lib/gcc/arm-none-eabi/12.3.1/include/stdint.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/stdint.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/machine/_default_types.h \

@@ -1,5 +1,5 @@
-/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/application_processor/build/system_max78000.o: \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Source/system_max78000.c \
+/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/application_processor/build/system_max78000.o: \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Source/system_max78000.c \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/string.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/_ansi.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/newlib.h \
@@ -24,25 +24,25 @@
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/stdlib.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/machine/stdlib.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/alloca.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/lib/gcc/arm-none-eabi/12.3.1/include/stdint.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/stdint.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/sys/_intsup.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/sys/_stdint.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/5.9.0/Core/Include/core_cm4.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_version.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_compiler.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_gcc.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/5.9.0/Core/Include/mpu_armv7.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/system_max78000.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gcr_regs.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gcr_regs.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_sys.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_device.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_errors.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_pins.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/gpio.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gpio_regs.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/lpgcr_regs.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/PeriphDrivers/Include/MAX78000/icc.h \
- /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/icc_regs.h
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/5.9.0/Core/Include/core_cm4.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_version.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_compiler.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/5.9.0/Core/Include/cmsis_gcc.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/5.9.0/Core/Include/mpu_armv7.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/system_max78000.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gcr_regs.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gcr_regs.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_sys.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_device.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_errors.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/mxc_pins.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/gpio.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/gpio_regs.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/lpgcr_regs.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/PeriphDrivers/Include/MAX78000/icc.h \
+ /home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/msdk/Libraries/CMSIS/Device/Maxim/MAX78000/Include/icc_regs.h

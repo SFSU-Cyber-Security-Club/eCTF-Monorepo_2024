@@ -1,4 +1,4 @@
-/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/application_processor/build/host_messaging.o: \
+/home/bristopherwoods/Desktop/CTFs/MITRE/eCTF-Monorepo_2024/misc_application/application_processor/build/host_messaging.o: \
  src/host_messaging.c inc/host_messaging.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/stdio.h \
  /nix/store/6y3qi0iccs4rm24dsyyyvf4l3m4s21h9-gcc-arm-embedded-12.3.rel1/arm-none-eabi/include/_ansi.h \
