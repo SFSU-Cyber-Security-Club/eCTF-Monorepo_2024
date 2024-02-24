@@ -24,7 +24,7 @@ void recv_input(const char *msg, char *buf, int buf_len) {
     index = strcspn(buf, "\r\n");
     if (index > buf_len || index < 0)
     {
-       index = buf_len
+       index = buf_len;
     }
     buf[index] = 0;
     puts("");
