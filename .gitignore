@@ -78,5 +78,8 @@ Temporary Items
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/git,macos,visualstudiocode
-
+# Get rid of the library code from the main repo, you can acquire that seperately
 msdk
+
+# avoid changing the pycache
+ectf_tools/__pycache__/

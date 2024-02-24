@@ -15,10 +15,18 @@
 
 // Print a message through USB UART and then receive a line over USB UART
 void recv_input(const char *msg, char *buf, int buf_len) {
+    int index = 0;
     print_debug(msg);
     fflush(0);
     print_ack();
     fgets(buf, buf_len, stdin);
+    // Terminate the string to prevent the input from being misunderstood
+    index = strcspn(buf, "\r\n");
+    if (index > buf_len || index < 0)
+    {
+       index = buf_len
+    }
+    buf[index] = 0;
     puts("");
 }
 

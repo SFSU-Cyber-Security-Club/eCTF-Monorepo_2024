@@ -501,8 +501,8 @@ int main() {
     int buf_len = 100;
     char buf[buf_len];
     while (1) {
-        recv_input("Enter Command: ", buf, buf_len);
-
+        recv_input("Enter Command: ", buf, buf_len-1);
+        print_info("Command was (%s) \n", buf); 
         // Execute requested command
         if (!strcmp(buf, "list")) {
             scan_components();
