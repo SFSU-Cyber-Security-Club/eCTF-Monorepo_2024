@@ -59,6 +59,19 @@ typedef enum {
 
 /******************************** TYPE DEFINITIONS ********************************/
 // Data structure for receiving messages from the AP
+typedef enum
+{
+    SYN,
+    ACK,
+} protocol_messages;
+
+// Data type for receiving a validate message
+typedef struct {
+    uint32_t component_id;
+    uint32_t session_id;
+    protocol_messages protocol_id;
+} validate_message;
+
 typedef struct {
     uint8_t opcode;
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
@@ -154,7 +167,7 @@ void component_process_cmd() {
     // Output to application processor dependent on command received
     switch (command->opcode) {
     case COMPONENT_CMD_BOOT:
-        process_boot();
+        //process_boot();
         break;
     case COMPONENT_CMD_SCAN:
         process_scan();
@@ -170,7 +183,7 @@ void component_process_cmd() {
         break;
     }
 }
-
+/*
 void process_boot() {
     // The AP requested a boot. Set `component_boot` for the main loop and
     // respond with the boot message
@@ -180,7 +193,7 @@ void process_boot() {
     // Call the boot function
     boot();
 }
-
+*/
 void process_scan() {
     // The AP requested a scan. Respond with the Component ID
     scan_message* packet = (scan_message*) transmit_buffer;
@@ -210,11 +223,31 @@ int main(void) {
     // Enable Global Interrupts
     __enable_irq();
     
+    // Seed random number generator
+    srand(inonce);
+    inonce = 0x1122334455667788
+
     // Initialize Component
     i2c_addr_t addr = component_id_to_i2c_addr(COMPONENT_ID);
     board_link_init(addr);
     
     LED_On(LED2);
+
+    int session_id = rand();
+
+    validate_message* validate = (validate_message*) transmit;
+    validate->component_id = addr;
+    validate->session_id = session_id;
+    validate->protocol_id = SYN;
+    send_packet_and_ack(sizeof(validate_message), validate);
+
+    session_id = rand();
+
+    wait_and_receive_packet(receive_buffer)
+   
+
+
+    boot();
 
     while (1) {
         wait_and_receive_packet(receive_buffer);

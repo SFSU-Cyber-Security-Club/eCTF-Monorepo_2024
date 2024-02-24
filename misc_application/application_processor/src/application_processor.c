@@ -70,9 +70,19 @@ typedef struct {
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
 } command_message;
 
+// Datatype for defining protocol in message validation
+typedef enum
+{
+    SYN,
+    ACK,
+} protocol_messages;
+
+
 // Data type for receiving a validate message
 typedef struct {
     uint32_t component_id;
+    uint32_t session_id;
+    protocol_messages protocol_id;
 } validate_message;
 
 // Data type for receiving a scan message
@@ -156,6 +166,10 @@ void init() {
     // Enable global interrupts    
     __enable_irq();
 
+    // Seed our random number generator using initial nonce
+    srand(inonce);
+    inonce = 0x0000000000000000;
+
     // Setup Flash
     flash_simple_init();
 
@@ -235,30 +249,67 @@ int validate_components() {
     // Buffers for board link communication
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
+    validate_message* validate;
+
+    // We are going to consume a random number, potentially
+    // causing a desync between the ap and component because they should in theory
+    // share the same rand output
+    int local_session = rand();
+    int comps_verified = 0;
 
     // Send validate command to each component
     for (unsigned i = 0; i < flash_status.component_cnt; i++) {
         // Set the I2C address of the component
         i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
 
-        // Create command message
-        command_message* command = (command_message*) transmit_buffer;
-        command->opcode = COMPONENT_CMD_VALIDATE;
-        
-        // Send out command and receive result
-        int len = issue_cmd(addr, transmit_buffer, receive_buffer);
-        if (len == ERROR_RETURN) {
-            print_error("Could not validate component\n");
-            return ERROR_RETURN;
+        // You shall send me a ping verification first or you shall suffer ultimate consequences 
+        // boot <sessionidtoken>
+        int len = poll_and_receive_packet(addr, receive_buffer);
+        if (len == ERROR_RETURN) 
+        { 
+            print_error("You must suffer\n"); 
+            return ERROR_RETURN ;
         }
-
-        validate_message* validate = (validate_message*) receive_buffer;
+        
+        validate = (validate_message*) receive_buffer;
         // Check that the result is correct
-        if (validate->component_id != flash_status.component_ids[i]) {
+        if (validate->component_id != flash_status.component_ids[i]
+        || validate->session_id != local_session
+        || validate->protocol_id != SYN)
+        {
+            print_error("AAAAAAAAAA EXPLODY AND DIE \n");
             print_error("Component ID: 0x%08x invalid\n", flash_status.component_ids[i]);
             return ERROR_RETURN;
         }
+        comps_verified++;
+
     }
+
+    if(comps_verified == flash_status.component_cnt)
+    {
+        local_session = rand();
+    }
+
+    // Now allow the component to verify the AP, with the AP sending
+    // and acknowledgement using the new session id
+
+    for (unsigned i = 0; i < flash_status.component_cnt; i++) {
+        i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
+
+        
+        validate->component_id = flash_status.component_ids[i];
+        validate->session_id = local_session;
+        validate->protocol_id = ACK; 
+        
+        
+        int result = send_packet(addr, sizeof(validate_message), validate);
+        if (result == ERROR_RETURN) {
+            return ERROR_RETURN;
+        }
+
+    }
+
+
     return SUCCESS_RETURN;
 }
 
