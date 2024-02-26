@@ -245,7 +245,7 @@ int main(void) {
 
     wait_and_receive_packet(receive_buffer)
    
-
+    // We need to cook here
 
     boot();
 
