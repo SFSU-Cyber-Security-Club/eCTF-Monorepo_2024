@@ -20,6 +20,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "simple_i2c_peripheral.h"
 #include "board_link.h"
@@ -80,9 +82,9 @@ typedef struct {
 /********************************* FUNCTION DECLARATIONS **********************************/
 // Core function definitions
 void component_process_cmd(void);
-void process_boot(void);
+void process_boot(nonce_t expected_nonce2, command_message* command);
 void process_scan(void);
-void process_validate(void);
+void process_validate(nonce_t nonce2, command_message* command);
 void process_attest(void);
 
 /********************************* GLOBAL VARIABLES **********************************/
@@ -100,7 +102,7 @@ uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
  * Securely send data over I2C. This function is utilized in POST_BOOT functionality.
  * This function must be implemented by your team to align with the security requirements.
 */
-void secure_send(uint8_t* buffer, uint8_t len) {
+void secure_send(uint8_t len, uint8_t* buffer) {
     send_packet_and_ack(len, buffer); 
 }
 
@@ -160,7 +162,7 @@ void boot() {
 // Handle a transaction from the AP
 void component_process_cmd() {
     command_message* command = (command_message*) receive_buffer;
-    static nonce_t nonce2 = generate_nonce();
+    static nonce_t nonce2 = 0;
     
 
     // Output to application processor dependent on command received
@@ -187,6 +189,11 @@ void component_process_cmd() {
 void process_boot(nonce_t expected_nonce2, command_message* command) {
     // The AP requested a boot. Set `component_boot` for the main loop and
     // respond with the boot message
+	if (expected_nonce2 == 0) {
+        printf("nonce2 is not generated\n");
+        return;
+	}
+
     nonce_t nonce2;
     memcpy(&nonce2, command->params, sizeof(nonce2));
     
