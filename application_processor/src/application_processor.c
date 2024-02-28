@@ -64,9 +64,9 @@
 
 /******************************** TYPE DEFINITIONS ********************************/
 // Data structure for sending commands to component
-// Params allows for up to MAX_I2C_MESSAGE_LEN - 1 bytes to be send
-// along with the opcode through board_link. This is not utilized by the example
-// design but can be utilized by your design.
+// Params allows for up to MAX_I2C_MESSAGE_LEN - 2 bytes to be send
+// along with the opcode through board_link. This is only utilized by
+// COMPONENT_CMD_VALIDATE and COMPONENT_CMD_BOOT currently.
 typedef struct {
     uint8_t opcode;
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
@@ -198,7 +198,10 @@ nonce_t generate_nonce()
 // Send a command to a component and receive the result
 int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
     // Send message
-    int result = secure_send(addr, transmit, sizeof(nonce_t) + 1);
+	// TODO: secure_send(addr, transmit, sizeof(command_message)) doesn't work because:
+    //   sizeof(command_message) : 256
+    //   uint8_t len: 0-255
+    int result = secure_send(addr, transmit, sizeof(nonce_t) + 1); // sizeof(nonce) + sizeof(opcode)
     if (result == ERROR_RETURN) {
         return ERROR_RETURN;
     }
@@ -260,16 +263,15 @@ int validate_components(nonce_t *nonce2) {
         // Set the I2C address of the component
         i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
 
+        // Generate nonce1 for validating component
+        const nonce_t nonce1 = generate_nonce();
+
         // Create command message
         command_message* command = (command_message*) transmit_buffer;
         command->opcode = COMPONENT_CMD_VALIDATE;
-        
-        // Send out command and receive result
-        const nonce_t nonce1 = generate_nonce(); // < implement this
-        memcpy(command->params, &nonce1, sizeof(nonce_t));
-        // fix this
-        // Send out command and receive result
+        memcpy(command->params, &nonce1, sizeof(nonce_t)); // Request the component to send this nonce1 back
 
+        // Send out command and receive result
         int len = issue_cmd(addr, transmit_buffer, receive_buffer);
         if (len == ERROR_RETURN) {
             print_error("Could not validate component\n");
