@@ -4,7 +4,7 @@ import os
 # Generate the pin
 
 PIN_KEY_LENGTH = 12
-TOKEN_KEY_LENGTH = 12
+TOKEN_KEY_LENGTH = 15
 
 def generate_sequence(is_pin):
         sequence_length = PIN_KEY_LENGTH if is_pin else TOKEN_KEY_LENGTH
@@ -19,12 +19,14 @@ def generate_sequence(is_pin):
                         numbers_mason.append(chr(number))
 
         sequence = "".join(numbers_mason)
-        print("PIN SEQUENCE ->", " > " + sequence + " < ")
+        typesequence = "PIN" if is_pin else "TOKEN"
+        print(typesequence + " SEQUENCE ->", " > " + sequence + " < ")
 
         # Digest and hash the result, the result will be flashed to our chip
         m = hashlib.sha256()
         m.update(bytes(sequence, 'ascii'))
         hashed_goodies = m.hexdigest()
+
 
         print("Hexed input = ", hashed_goodies)
 
