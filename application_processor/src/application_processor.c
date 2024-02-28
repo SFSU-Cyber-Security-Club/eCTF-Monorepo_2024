@@ -209,7 +209,6 @@ nonce_t generate_nonce()
     return *((nonce_t *)(hash_out));
 }
 
-
 // Send a command to a component and receive the result
 int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
     // Send message
