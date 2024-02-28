@@ -102,7 +102,7 @@ uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
  * Securely send data over I2C. This function is utilized in POST_BOOT functionality.
  * This function must be implemented by your team to align with the security requirements.
 */
-void secure_send(uint8_t len, uint8_t* buffer) {
+void secure_send(uint8_t* buffer, uint8_t len) {
     send_packet_and_ack(len, buffer); 
 }
 
@@ -206,7 +206,7 @@ void process_boot(nonce_t expected_nonce2, command_message* command) {
     uint8_t len = strlen(COMPONENT_BOOT_MSG) + 1;
     memcpy((void*)transmit_buffer, COMPONENT_BOOT_MSG, len);
 
-    secure_send(len, transmit_buffer);
+    secure_send(transmit_buffer, len);
     // Call the boot function
     boot();
 }
@@ -215,7 +215,7 @@ void process_scan() {
     // The AP requested a scan. Respond with the Component ID
     scan_message* packet = (scan_message*) transmit_buffer;
     packet->component_id = COMPONENT_ID;
-    secure_send(sizeof(scan_message), transmit_buffer);
+    secure_send(transmit_buffer, sizeof(scan_message));
 }
 
 void process_validate(nonce_t nonce2, command_message* command) {
@@ -227,14 +227,14 @@ void process_validate(nonce_t nonce2, command_message* command) {
     packet->component_id = COMPONENT_ID;
     packet->nonce1 = nonce1;
     packet->nonce2 = nonce2;
-    secure_send(sizeof(validate_message), transmit_buffer);
+    secure_send(transmit_buffer, sizeof(validate_message));
 }
 
 void process_attest() {
     // The AP requested attestation. Respond with the attestation data
     uint8_t len = sprintf((char*)transmit_buffer, "LOC>%s\nDATE>%s\nCUST>%s\n",
                 ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER) + 1;
-    secure_send(len, transmit_buffer);
+    secure_send(transmit_buffer, len);
 }
 
 /*********************************** MAIN *************************************/
