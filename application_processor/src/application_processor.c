@@ -491,7 +491,6 @@ int main() {
     char buf[CMD_BUFSIZE];
     while (1) {
         recv_input("Enter Command: ", buf, CMD_BUFSIZE-1);
-        print_info("Command was (%s) \n", buf); 
         // Execute requested command
         if (!strcmp(buf, "list")) {
             scan_components();
