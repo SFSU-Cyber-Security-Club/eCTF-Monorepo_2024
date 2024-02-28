@@ -31,7 +31,7 @@ def generate_sequence(is_pin):
 def generate_nonce():
         number = int.from_bytes(os.urandom(8), "little")
         
-        generate_public_inonce = "long long int inonce = " + hex(number) + ";"
+        generate_public_inonce = "#define INONCE " + hex(number)
 
         f = open("global_secrets.h", 'w')
         f.write(generate_public_inonce)
