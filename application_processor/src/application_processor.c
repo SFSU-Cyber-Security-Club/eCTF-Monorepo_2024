@@ -198,7 +198,7 @@ nonce_t generate_nonce()
 // Send a command to a component and receive the result
 int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
     // Send message
-    int result = secure_send(addr, transmit, MAX_I2C_MESSAGE_LEN);
+    int result = secure_send(addr, transmit, sizeof(nonce_t) + 1);
     if (result == ERROR_RETURN) {
         return ERROR_RETURN;
     }
