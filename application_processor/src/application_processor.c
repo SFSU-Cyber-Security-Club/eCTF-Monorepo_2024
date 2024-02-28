@@ -32,8 +32,10 @@
 #endif
 
 #ifdef POST_BOOT
+#include "mxc_delay.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #endif
 
 // Includes from containerized build
@@ -53,7 +55,7 @@
 */
 
 // Flash Macros
-#define FLASH_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (1 * MXC_FLASH_PAGE_SIZE))
+#define FLASH_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
 #define FLASH_MAGIC 0xDEADBEEF
 
 // Library call return types
@@ -70,19 +72,9 @@ typedef struct {
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
 } command_message;
 
-// Datatype for defining protocol in message validation
-typedef enum
-{
-    SYN,
-    ACK,
-} protocol_messages;
-
-
 // Data type for receiving a validate message
 typedef struct {
     uint32_t component_id;
-    uint32_t session_id;
-    protocol_messages protocol_id;
 } validate_message;
 
 // Data type for receiving a scan message
@@ -166,10 +158,6 @@ void init() {
     // Enable global interrupts    
     __enable_irq();
 
-    // Seed our random number generator using initial nonce
-    srand(inonce);
-    inonce = 0x0000000000000000;
-
     // Setup Flash
     flash_simple_init();
 
@@ -222,9 +210,10 @@ int scan_components() {
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 
     // Scan scan command to each component 
-    for (i2c_addr_t addr = 0x8; addr < 0x7F; addr++) {
-        // I2C Blacklist - 0x36 conflicts with separate device on MAX78000FTHR
-        if (addr == 0x36) {
+    for (i2c_addr_t addr = 0x8; addr < 0x78; addr++) {
+        // I2C Blacklist:
+        // 0x18, 0x28, and 0x36 conflict with separate devices on MAX78000FTHR
+        if (addr == 0x18 || addr == 0x28 || addr == 0x36) {
             continue;
         }
 
@@ -249,67 +238,30 @@ int validate_components() {
     // Buffers for board link communication
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
-    validate_message* validate;
-
-    // We are going to consume a random number, potentially
-    // causing a desync between the ap and component because they should in theory
-    // share the same rand output
-    int local_session = rand();
-    int comps_verified = 0;
 
     // Send validate command to each component
     for (unsigned i = 0; i < flash_status.component_cnt; i++) {
         // Set the I2C address of the component
         i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
 
-        // You shall send me a ping verification first or you shall suffer ultimate consequences 
-        // boot <sessionidtoken>
-        int len = poll_and_receive_packet(addr, receive_buffer);
-        if (len == ERROR_RETURN) 
-        { 
-            print_error("You must suffer\n"); 
-            return ERROR_RETURN ;
-        }
+        // Create command message
+        command_message* command = (command_message*) transmit_buffer;
+        command->opcode = COMPONENT_CMD_VALIDATE;
         
-        validate = (validate_message*) receive_buffer;
+        // Send out command and receive result
+        int len = issue_cmd(addr, transmit_buffer, receive_buffer);
+        if (len == ERROR_RETURN) {
+            print_error("Could not validate component\n");
+            return ERROR_RETURN;
+        }
+
+        validate_message* validate = (validate_message*) receive_buffer;
         // Check that the result is correct
-        if (validate->component_id != flash_status.component_ids[i]
-        || validate->session_id != local_session
-        || validate->protocol_id != SYN)
-        {
-            print_error("AAAAAAAAAA EXPLODY AND DIE \n");
+        if (validate->component_id != flash_status.component_ids[i]) {
             print_error("Component ID: 0x%08x invalid\n", flash_status.component_ids[i]);
             return ERROR_RETURN;
         }
-        comps_verified++;
-
     }
-
-    if(comps_verified == flash_status.component_cnt)
-    {
-        local_session = rand();
-    }
-
-    // Now allow the component to verify the AP, with the AP sending
-    // and acknowledgement using the new session id
-
-    for (unsigned i = 0; i < flash_status.component_cnt; i++) {
-        i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
-
-        
-        validate->component_id = flash_status.component_ids[i];
-        validate->session_id = local_session;
-        validate->protocol_id = ACK; 
-        
-        
-        int result = send_packet(addr, sizeof(validate_message), validate);
-        if (result == ERROR_RETURN) {
-            return ERROR_RETURN;
-        }
-
-    }
-
-
     return SUCCESS_RETURN;
 }
 
@@ -335,7 +287,7 @@ int boot_components() {
         }
 
         // Print boot message from component
-        print_info("0x%x>%s\n", flash_status.component_ids[i], receive_buffer);
+        print_info("0x%08x>%s\n", flash_status.component_ids[i], receive_buffer);
     }
     return SUCCESS_RETURN;
 }
@@ -360,8 +312,8 @@ int attest_component(uint32_t component_id) {
     }
 
     // Print out attestation data 
-    print_info("C>0x%08x", component_id);
-    print_info("%s\n", receive_buffer);
+    print_info("C>0x%08x\n", component_id);
+    print_info("%s", receive_buffer);
     return SUCCESS_RETURN;
 }
 
@@ -378,20 +330,19 @@ void boot() {
     char* data = "Crypto Example!";
     uint8_t ciphertext[BLOCK_SIZE];
     uint8_t key[KEY_SIZE];
-    print_info("Works at this phase 1\n");
     
     // Zero out the key
     bzero(key, BLOCK_SIZE);
-    print_info("Works at this phase 2\n");
+
     // Encrypt example data and print out
     encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext); 
     print_debug("Encrypted data: ");
     print_hex_debug(ciphertext, BLOCK_SIZE);
-    print_info("Works at this phase 3\n");
+
     // Hash example encryption results 
     uint8_t hash_out[HASH_SIZE];
     hash(ciphertext, BLOCK_SIZE, hash_out);
-    print_info("Works at this phase 4\n");
+
     // Output hash result
     print_debug("Hash result: ");
     print_hex_debug(hash_out, HASH_SIZE);
@@ -427,10 +378,10 @@ void boot() {
 }
 
 // Compare the entered PIN to the correct PIN
+#define PIN_BUFSIZE 50
 int validate_pin() {
-    int buf_len = 50;
-    char buf[buf_len];
-    recv_input("Enter pin: ", buf, buf_len);
+    char buf[PIN_BUFSIZE];
+    recv_input("Enter pin: ", buf, PIN_BUFSIZE);
     if (!strcmp(buf, AP_PIN)) {
         print_debug("Pin Accepted!\n");
         return SUCCESS_RETURN;
@@ -440,10 +391,10 @@ int validate_pin() {
 }
 
 // Function to validate the replacement token
+#define TOK_BUFSIZE 50
 int validate_token() {
-    int buf_len = 50;
-    char buf[buf_len];
-    recv_input("Enter token: ", buf, buf_len);
+    char buf[TOK_BUFSIZE];
+    recv_input("Enter token: ", buf, TOK_BUFSIZE);
     if (!strcmp(buf, AP_TOKEN)) {
         print_debug("Token Accepted!\n");
         return SUCCESS_RETURN;
@@ -472,9 +423,9 @@ void attempt_boot() {
 }
 
 // Replace a component if the PIN is correct
+#define REP_BUFSIZE 50
 void attempt_replace() {
-    int buf_len = 50;
-    char buf[50];
+    char buf[REP_BUFSIZE];
 
     if (validate_token()) {
         return;
@@ -483,9 +434,9 @@ void attempt_replace() {
     uint32_t component_id_in = 0;
     uint32_t component_id_out = 0;
 
-    recv_input("Component ID In: ", buf, buf_len);
+    recv_input("Component ID In: ", buf, REP_BUFSIZE);
     sscanf(buf, "%x", &component_id_in);
-    recv_input("Component ID Out: ", buf, buf_len);
+    recv_input("Component ID Out: ", buf, REP_BUFSIZE);
     sscanf(buf, "%x", &component_id_out);
 
     // Find the component to swap out
@@ -510,21 +461,23 @@ void attempt_replace() {
 }
 
 // Attest a component if the PIN is correct
+#define ATTEST_BUFSIZE 50
 void attempt_attest() {
-    int buf_len = 50;
-    char buf[buf_len];
+    char buf[ATTEST_BUFSIZE];
 
     if (validate_pin()) {
         return;
     }
     uint32_t component_id;
-    recv_input("Component ID: ", buf, buf_len);
+    recv_input("Component ID: ", buf, ATTEST_BUFSIZE);
     sscanf(buf, "%x", &component_id);
-    attest_component(component_id);
-    print_success("Attest\n");
+    if (attest_component(component_id) == SUCCESS_RETURN) {
+        print_success("Attest\n");
+    }
 }
 
 /*********************************** MAIN *************************************/
+#define CMD_BUFSIZE 100
 
 int main() {
     // Initialize board
@@ -535,11 +488,9 @@ int main() {
     print_info("Application Processor Started\n");
 
     // Handle commands forever
-    int buf_len = 100;
-    char buf[buf_len];
+    char buf[CMD_BUFSIZE];
     while (1) {
-        recv_input("Enter Command: ", buf, buf_len-1);
-        print_info("Command was (%s) \n", buf); 
+        recv_input("Enter Command: ", buf, CMD_BUFSIZE-1);
         // Execute requested command
         if (!strcmp(buf, "list")) {
             scan_components();
