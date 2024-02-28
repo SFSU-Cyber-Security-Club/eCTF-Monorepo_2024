@@ -73,7 +73,7 @@ typedef struct {
 } command_message;
 
 // Datatype for our nonce 
-typedef uint32_t nonce_t;
+typedef uint64_t nonce_t;
 
 // Data type for receiving a validate message
 typedef struct {
@@ -191,14 +191,14 @@ void init() {
 
 nonce_t generate_nonce()
 {
-    return rand() ^ time(null);
+    return rand() ^ time(NULL);
 }
 
 
 // Send a command to a component and receive the result
 int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
     // Send message
-    int result = secure_send(addr, sizeof(uint8_t), transmit);
+    int result = secure_send(addr, transmit, MAX_I2C_MESSAGE_LEN);
     if (result == ERROR_RETURN) {
         return ERROR_RETURN;
     }
@@ -267,7 +267,7 @@ int validate_components(nonce_t *nonce2) {
         // Send out command and receive result
         const nonce_t nonce1 = generate_nonce(); // < implement this
         memcpy(command->params, &nonce1, sizeof(nonce_t));
-        // fix this /\ 
+        // fix this
         // Send out command and receive result
 
         int len = issue_cmd(addr, transmit_buffer, receive_buffer);
