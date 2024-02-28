@@ -26,6 +26,10 @@
 #include "simple_i2c_peripheral.h"
 #include "board_link.h"
 
+#ifdef CRYPTO_EXAMPLE
+#include "simple_crypto.h"
+#endif
+
 // Includes from containerized build
 #include "ectf_params.h"
 #include "global_secrets.h"
@@ -134,7 +138,7 @@ nonce_t generate_nonce()
 	plain.timestamp = time(NULL);
 
 	if (hash(&plain, sizeof(plain), hash_out) != 0) {
-		print_debug("Error: hash\n");
+		printf("Error: hash\n");
 	}
 
     return *((nonce_t *)(hash_out));
