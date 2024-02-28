@@ -378,10 +378,10 @@ void boot() {
 }
 
 // Compare the entered PIN to the correct PIN
+#define PIN_BUFSIZE 50
 int validate_pin() {
-    int buf_len = 50;
-    char buf[buf_len];
-    recv_input("Enter pin: ", buf, buf_len);
+    char buf[PIN_BUFSIZE];
+    recv_input("Enter pin: ", buf, PIN_BUFSIZE);
     if (!strcmp(buf, AP_PIN)) {
         print_debug("Pin Accepted!\n");
         return SUCCESS_RETURN;
@@ -391,10 +391,10 @@ int validate_pin() {
 }
 
 // Function to validate the replacement token
+#define TOK_BUFSIZE 50
 int validate_token() {
-    int buf_len = 50;
-    char buf[buf_len];
-    recv_input("Enter token: ", buf, buf_len);
+    char buf[TOK_BUFSIZE];
+    recv_input("Enter token: ", buf, TOK_BUFSIZE);
     if (!strcmp(buf, AP_TOKEN)) {
         print_debug("Token Accepted!\n");
         return SUCCESS_RETURN;
@@ -423,8 +423,9 @@ void attempt_boot() {
 }
 
 // Replace a component if the PIN is correct
+#define REP_BUFSIZE 50
 void attempt_replace() {
-    char buf[50];
+    char buf[REP_BUFSIZE];
 
     if (validate_token()) {
         return;
@@ -433,9 +434,9 @@ void attempt_replace() {
     uint32_t component_id_in = 0;
     uint32_t component_id_out = 0;
 
-    recv_input("Component ID In: ", buf, buf_len);
+    recv_input("Component ID In: ", buf, REP_BUFSIZE);
     sscanf(buf, "%x", &component_id_in);
-    recv_input("Component ID Out: ", buf, buf_len);
+    recv_input("Component ID Out: ", buf, REP_BUFSIZE);
     sscanf(buf, "%x", &component_id_out);
 
     // Find the component to swap out
@@ -460,15 +461,15 @@ void attempt_replace() {
 }
 
 // Attest a component if the PIN is correct
+#define ATTEST_BUFSIZE 50
 void attempt_attest() {
-    int buf_len = 50;
-    char buf[buf_len];
+    char buf[ATTEST_BUFSIZE];
 
     if (validate_pin()) {
         return;
     }
     uint32_t component_id;
-    recv_input("Component ID: ", buf, buf_len);
+    recv_input("Component ID: ", buf, ATTEST_BUFSIZE);
     sscanf(buf, "%x", &component_id);
     if (attest_component(component_id) == SUCCESS_RETURN) {
         print_success("Attest\n");
@@ -476,6 +477,7 @@ void attempt_attest() {
 }
 
 /*********************************** MAIN *************************************/
+#define CMD_BUFSIZE 100
 
 int main() {
     // Initialize board
@@ -486,10 +488,9 @@ int main() {
     print_info("Application Processor Started\n");
 
     // Handle commands forever
-    int buf_len = 100;
-    char buf[buf_len];
+    char buf[CMD_BUFSIZE];
     while (1) {
-        recv_input("Enter Command: ", buf, buf_len-1);
+        recv_input("Enter Command: ", buf, CMD_BUFSIZE-1);
         print_info("Command was (%s) \n", buf); 
         // Execute requested command
         if (!strcmp(buf, "list")) {
