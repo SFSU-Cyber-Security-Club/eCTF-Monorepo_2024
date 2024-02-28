@@ -72,9 +72,14 @@ typedef struct {
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
 } command_message;
 
+// Datatype for our nonce 
+typedef uint32_t nonce_t;
+
 // Data type for receiving a validate message
 typedef struct {
     uint32_t component_id;
+    nonce_t nonce1;
+    nonce_t nonce2;
 } validate_message;
 
 // Data type for receiving a scan message
@@ -158,6 +163,9 @@ void init() {
     // Enable global interrupts    
     __enable_irq();
 
+    // Seed our random number generator using initial nonce
+    srand(INONCE);
+
     // Setup Flash
     flash_simple_init();
 
@@ -181,16 +189,22 @@ void init() {
     board_link_init();
 }
 
+nonce_t generate_nonce()
+{
+    return rand() ^ time(null);
+}
+
+
 // Send a command to a component and receive the result
 int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
     // Send message
-    int result = send_packet(addr, sizeof(uint8_t), transmit);
+    int result = secure_send(addr, sizeof(uint8_t), transmit);
     if (result == ERROR_RETURN) {
         return ERROR_RETURN;
     }
     
     // Receive message
-    int len = poll_and_receive_packet(addr, receive);
+    int len = secure_receive(addr, receive);
     if (len == ERROR_RETURN) {
         return ERROR_RETURN;
     }
@@ -234,7 +248,9 @@ int scan_components() {
     return SUCCESS_RETURN;
 }
 
-int validate_components() {
+
+
+int validate_components(nonce_t *nonce2) {
     // Buffers for board link communication
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
@@ -249,6 +265,11 @@ int validate_components() {
         command->opcode = COMPONENT_CMD_VALIDATE;
         
         // Send out command and receive result
+        const nonce_t nonce1 = generate_nonce(); // < implement this
+        memcpy(command->params, nonce, sizeof(nonce_t));
+        // fix this /\ 
+        // Send out command and receive result
+
         int len = issue_cmd(addr, transmit_buffer, receive_buffer);
         if (len == ERROR_RETURN) {
             print_error("Could not validate component\n");
@@ -256,16 +277,23 @@ int validate_components() {
         }
 
         validate_message* validate = (validate_message*) receive_buffer;
+
+        // Remake validate_message structure
+        if (validate->nonce1 != nonce1) {
+            print_error("nonce1 value: %u invalid\n", validate->nonce1);
+            return ERROR_RETURN;
+        }
         // Check that the result is correct
         if (validate->component_id != flash_status.component_ids[i]) {
             print_error("Component ID: 0x%08x invalid\n", flash_status.component_ids[i]);
             return ERROR_RETURN;
         }
+        nonce2[i] = validate->nonce2;
     }
     return SUCCESS_RETURN;
 }
 
-int boot_components() {
+int boot_components(nonce_t *nonce2) {
     // Buffers for board link communication
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
@@ -278,6 +306,7 @@ int boot_components() {
         // Create command message
         command_message* command = (command_message*) transmit_buffer;
         command->opcode = COMPONENT_CMD_BOOT;
+        memcpy(command->params, nonce2[i], sizeof(nonce_t)); // Send back original nonce sent back from comp
         
         // Send out command and receive result
         int len = issue_cmd(addr, transmit_buffer, receive_buffer);
@@ -405,12 +434,13 @@ int validate_token() {
 
 // Boot the components and board if the components validate
 void attempt_boot() {
-    if (validate_components()) {
+    nonce_t nonce2[flash_status.component_cnt];
+    if (validate_components(nonce2)) {
         print_error("Components could not be validated\n");
         return;
     }
     print_debug("All Components validated\n");
-    if (boot_components()) {
+    if (boot_components(nonce2)) {
         print_error("Failed to boot all components\n");
         return;
     }

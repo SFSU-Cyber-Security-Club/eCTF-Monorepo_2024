@@ -84,3 +84,4 @@ misc_application/msdk
 # avoid changing the pycache
 ectf_tools/__pycache__/
 msdk/
+deployment/global_secrets.h
