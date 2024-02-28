@@ -1,3 +1,0 @@
-#define INONCE 0x805c8fc25ef1c508
-#define HASH_PIN
-#define HASH_ATTESTATION 
