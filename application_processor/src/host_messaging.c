@@ -21,12 +21,11 @@ void recv_input(const char *msg, char *buf, int buf_len) {
     print_ack();
     fgets(buf, buf_len, stdin);
     // Terminate the string to prevent the input from being misunderstood
-    index = strcspn(buf, "\r\n");
-    if (index > buf_len || index < 0)
+	char *nlp = strchr(buf, '\n');
+    if (nlp)
     {
-       index = buf_len;
+		*nlp = '\0';
     }
-    buf[index] = 0;
     puts("");
 }
 
