@@ -266,7 +266,7 @@ int validate_components(nonce_t *nonce2) {
         
         // Send out command and receive result
         const nonce_t nonce1 = generate_nonce(); // < implement this
-        memcpy(command->params, nonce, sizeof(nonce_t));
+        memcpy(command->params, &nonce1, sizeof(nonce_t));
         // fix this /\ 
         // Send out command and receive result
 
@@ -306,7 +306,7 @@ int boot_components(nonce_t *nonce2) {
         // Create command message
         command_message* command = (command_message*) transmit_buffer;
         command->opcode = COMPONENT_CMD_BOOT;
-        memcpy(command->params, nonce2[i], sizeof(nonce_t)); // Send back original nonce sent back from comp
+        memcpy(command->params, &nonce2[i], sizeof(nonce_t)); // Send back original nonce sent back from comp
         
         // Send out command and receive result
         int len = issue_cmd(addr, transmit_buffer, receive_buffer);

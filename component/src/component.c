@@ -64,8 +64,13 @@ typedef struct {
     uint8_t params[MAX_I2C_MESSAGE_LEN-1];
 } command_message;
 
+// Datatype for our nonce 
+typedef uint32_t nonce_t;
+
 typedef struct {
     uint32_t component_id;
+    nonce_t nonce1;
+    nonce_t nonce2;
 } validate_message;
 
 typedef struct {
@@ -113,6 +118,11 @@ int secure_receive(uint8_t* buffer) {
     return wait_and_receive_packet(buffer);
 }
 
+nonce_t generate_nonce()
+{
+    return rand() ^ time(null);
+}
+
 /******************************* FUNCTION DEFINITIONS *********************************/
 
 // Example boot sequence
@@ -150,17 +160,20 @@ void boot() {
 // Handle a transaction from the AP
 void component_process_cmd() {
     command_message* command = (command_message*) receive_buffer;
+    static nonce_t nonce2 = generate_nonce();
+    
 
     // Output to application processor dependent on command received
     switch (command->opcode) {
     case COMPONENT_CMD_BOOT:
-        process_boot();
+        process_boot(nonce2, command);
         break;
     case COMPONENT_CMD_SCAN:
         process_scan();
         break;
     case COMPONENT_CMD_VALIDATE:
-        process_validate();
+        nonce2 = generate_nonce();
+        process_validate(nonce2, command);
         break;
     case COMPONENT_CMD_ATTEST:
         process_attest();
@@ -171,12 +184,22 @@ void component_process_cmd() {
     }
 }
 
-void process_boot() {
+void process_boot(nonce_t expected_nonce2, command_message* command) {
     // The AP requested a boot. Set `component_boot` for the main loop and
     // respond with the boot message
+    nonce_t nonce2;
+    memcpy(&nonce2, command->params, sizeof(nonce2));
+    
+    if (expected_nonce2 != nonce2) 
+    {
+        printf("Could not validate AP\n");
+        return;
+    }
+
     uint8_t len = strlen(COMPONENT_BOOT_MSG) + 1;
     memcpy((void*)transmit_buffer, COMPONENT_BOOT_MSG, len);
-    send_packet_and_ack(len, transmit_buffer);
+
+    secure_send(len, transmit_buffer);
     // Call the boot function
     boot();
 }
@@ -185,21 +208,26 @@ void process_scan() {
     // The AP requested a scan. Respond with the Component ID
     scan_message* packet = (scan_message*) transmit_buffer;
     packet->component_id = COMPONENT_ID;
-    send_packet_and_ack(sizeof(scan_message), transmit_buffer);
+    secure_send(sizeof(scan_message), transmit_buffer);
 }
 
-void process_validate() {
+void process_validate(nonce_t nonce2, command_message* command) {
     // The AP requested a validation. Respond with the Component ID
+    nonce_t nonce1;
+    memcpy(&nonce1, command->params, sizeof(nonce1));
+
     validate_message* packet = (validate_message*) transmit_buffer;
     packet->component_id = COMPONENT_ID;
-    send_packet_and_ack(sizeof(validate_message), transmit_buffer);
+    packet->nonce1 = nonce1;
+    packet->nonce2 = nonce2;
+    secure_send(sizeof(validate_message), transmit_buffer);
 }
 
 void process_attest() {
     // The AP requested attestation. Respond with the attestation data
     uint8_t len = sprintf((char*)transmit_buffer, "LOC>%s\nDATE>%s\nCUST>%s\n",
                 ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER) + 1;
-    send_packet_and_ack(len, transmit_buffer);
+    secure_send(len, transmit_buffer);
 }
 
 /*********************************** MAIN *************************************/
@@ -217,7 +245,7 @@ int main(void) {
     LED_On(LED2);
 
     while (1) {
-        wait_and_receive_packet(receive_buffer);
+        secure_receive(receive_buffer);
 
         component_process_cmd();
     }
