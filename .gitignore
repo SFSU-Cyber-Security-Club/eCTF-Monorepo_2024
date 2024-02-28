@@ -7,9 +7,9 @@
 4c8989pnvxrgs8g3qb1kfx76ki56j0da-source
 
 # Don't include anything in the build file
-misc_application/build/
-misc_application/application_processor/build/
-misc_application/component/build/
+build/
+application_processor/build/
+component/build/
 
 # Created by git for backups. To disable backups in Git:
 # $ git config --global mergetool.keepBackup false
@@ -82,5 +82,5 @@ Temporary Items
 misc_application/msdk
 
 # avoid changing the pycache
-misc_application/ectf_tools/__pycache__/
+ectf_tools/__pycache__/
 msdk
