@@ -83,3 +83,4 @@ misc_application/msdk
 
 # avoid changing the pycache
 misc_application/ectf_tools/__pycache__/
+msdk
