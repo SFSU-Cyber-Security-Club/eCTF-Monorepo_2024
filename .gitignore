@@ -85,3 +85,4 @@ misc_application/msdk
 ectf_tools/__pycache__/
 msdk/
 deployment/global_secrets.h
+*.swp

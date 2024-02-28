@@ -67,7 +67,7 @@ typedef struct {
 } command_message;
 
 // Datatype for our nonce 
-typedef uint32_t nonce_t;
+typedef uint64_t nonce_t;
 
 typedef struct {
     uint32_t component_id;
