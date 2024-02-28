@@ -122,7 +122,7 @@ int secure_receive(uint8_t* buffer) {
 
 nonce_t generate_nonce()
 {
-    return rand() ^ time(null);
+    return rand() ^ time(NULL);
 }
 
 /******************************* FUNCTION DEFINITIONS *********************************/
