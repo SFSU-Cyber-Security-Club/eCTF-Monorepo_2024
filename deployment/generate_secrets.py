@@ -27,21 +27,30 @@ def generate_sequence(is_pin):
         m.update(bytes(sequence, 'ascii'))
         hashed_goodies = m.hexdigest()
 
+        generate_hash_pins = "#define " + typesequence + " " + '"' + hashed_goodies + '"\n'
 
+        f = open("global_secrets.h", 'a')
+        f.write(generate_hash_pins)
+        f.close()
+        
         print("Hexed input = ", hashed_goodies)
 
 def generate_nonce():
         number = int.from_bytes(os.urandom(8), "little")
         
-        generate_public_inonce = "long long int inonce = " + hex(number) + ";"
+        generate_public_inonce = "#define INONCE " + hex(number) + "\n"
 
-        f = open("global_secrets.h", 'w')
+        f = open("global_secrets.h", 'a')
         f.write(generate_public_inonce)
         f.close()
 
 def main():
     # 0 - Token 
     # 1 - Pin
+
+    f = open("global_secrets.h", 'w')
+    f.close() 
+
     generate_sequence(1)
     generate_sequence(0)
     generate_nonce()
