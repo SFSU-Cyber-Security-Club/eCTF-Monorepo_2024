@@ -163,8 +163,8 @@ void init() {
     // Enable global interrupts    
     __enable_irq();
 
-    // Seed our random number generator using initial nonce
-    srand(INONCE);
+    // Seed our random number generator using build time secret
+    srand((unsigned int)AP_SEED);
 
     // Setup Flash
     flash_simple_init();

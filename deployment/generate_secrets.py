@@ -44,6 +44,24 @@ def generate_nonce():
         f.write(generate_public_inonce)
         f.close()
 
+def generate_ap_seed():
+        number = int.from_bytes(os.urandom(8), "little")
+        
+        seed = "#define AP_SEED " + hex(number) + "\n"
+
+        f = open("global_secrets.h", 'a')
+        f.write(seed)
+        f.close()
+
+def generate_comp_seed():
+        number = int.from_bytes(os.urandom(8), "little")
+        
+        seed = "#define COMP_SEED " + hex(number) + "\n"
+
+        f = open("global_secrets.h", 'a')
+        f.write(seed)
+        f.close()
+
 def main():
     # 0 - Token 
     # 1 - Pin
@@ -54,6 +72,9 @@ def main():
     generate_sequence(1)
     generate_sequence(0)
     generate_nonce()
+    generate_ap_seed()
+    generate_comp_seed()
+
 if __name__ == "__main__":
     main()
 

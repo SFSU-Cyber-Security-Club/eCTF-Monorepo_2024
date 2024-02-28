@@ -264,6 +264,9 @@ int main(void) {
     // Enable Global Interrupts
     __enable_irq();
     
+    // Seed our random number generator using build time secret
+    srand((unsigned int)COMP_SEED);
+
     // Initialize Component
     i2c_addr_t addr = component_id_to_i2c_addr(COMPONENT_ID);
     board_link_init(addr);
