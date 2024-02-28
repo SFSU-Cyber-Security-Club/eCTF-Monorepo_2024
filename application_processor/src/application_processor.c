@@ -189,9 +189,24 @@ void init() {
     board_link_init();
 }
 
+typedef struct {
+	int rand;
+	int timestamp;
+} plain_nonce;
+
 nonce_t generate_nonce()
 {
-    return rand() ^ time(NULL);
+	plain_nonce plain;
+	uint8_t hash_out[HASH_SIZE];
+
+	plain.rand = rand();
+	plain.timestamp = time(NULL);
+
+	if (hash(&plain, sizeof(plain), hash_out) != 0) {
+		print_debug("Error: hash\n");
+	}
+
+    return *((nonce_t *)(hash_out));
 }
 
 
