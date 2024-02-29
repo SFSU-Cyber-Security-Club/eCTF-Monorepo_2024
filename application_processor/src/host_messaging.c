@@ -12,20 +12,20 @@
  */
 
 #include "host_messaging.h"
+#include <string.h>
 
 // Print a message through USB UART and then receive a line over USB UART
 void recv_input(const char *msg, char *buf, int buf_len) {
-    int index = 0;
     print_debug(msg);
     fflush(0);
     print_ack();
     fgets(buf, buf_len, stdin);
     // Terminate the string to prevent the input from being misunderstood
-	char *nlp;
-    if (nlp = strchr(buf, '\n'))
-		*nlp = '\0';
-    if (nlp = strchr(buf, '\r'))
-		*nlp = '\0';
+	char *newline_ptr;
+	newline_ptr = strchr(buf, '\n');
+    if (newline_ptr) *newline_ptr = '\0';
+	newline_ptr = strchr(buf, '\r');
+    if (newline_ptr) *newline_ptr = '\0';
     puts("");
 }
 
