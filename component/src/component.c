@@ -83,6 +83,14 @@ typedef struct {
     uint32_t component_id;
 } scan_message;
 
+// Data structure for holding the attestation data
+typedef struct {
+    char ATTEST_CUST[100];
+    char ATTEST_DATE[100]; // change the size to macro constant checking length of actual data MACRO LEN(ATTE..)
+    char ATTEST_LOCA[100];
+    uint8_t params[MAX_I2C_MESSAGE_LEN-50]; // Very bad
+} attestation_data;
+
 /********************************* FUNCTION DECLARATIONS **********************************/
 // Core function definitions
 void component_process_cmd(void);
@@ -142,6 +150,23 @@ nonce_t generate_nonce()
 	}
 
     return *((nonce_t *)(hash_out));
+}
+
+attestation_data* AT_ENCRYPTED_DATA;
+
+void encrypt_AT(char* AT_DATA[], char* ATAP_PUB_KEY)
+{
+    int i = 0;
+    char* AT_DATA[3] = {ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER};
+
+    for(; i < 3; i++)
+    {
+        int byte_length = strlen(AT_DATA[i]);
+        wc_RsaPublicEncrypt(AT_DATA[i], byte_length, AT_ENCRYPTED_DATA[i], sizeof(AT_ENCRYPTED_DATA[i]), keyhere, rng generator);
+    }
+    // hash and store the hash value result somewhere
+    
+    // Erase any references of the attestation data from memory
 }
 
 /******************************* FUNCTION DEFINITIONS *********************************/
@@ -251,6 +276,8 @@ void process_validate(nonce_t nonce2, command_message* command) {
 
 void process_attest() {
     // The AP requested attestation. Respond with the attestation data
+
+
     uint8_t len = sprintf((char*)transmit_buffer, "LOC>%s\nDATE>%s\nCUST>%s\n",
                 ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER) + 1;
     secure_send(transmit_buffer, len);
@@ -263,7 +290,10 @@ int main(void) {
     
     // Enable Global Interrupts
     __enable_irq();
-    
+
+    // Encrypt component's AT data with AP's public key
+    encrypt_AT(ATAP_PUB_KEY);
+
     // Seed our random number generator using build time secret
     srand((unsigned int)COMP_SEED);
 

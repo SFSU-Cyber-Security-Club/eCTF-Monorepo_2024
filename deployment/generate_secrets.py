@@ -1,3 +1,5 @@
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 import hashlib
 import os
 
@@ -61,6 +63,52 @@ def generate_comp_seed():
         f = open("global_secrets.h", 'a')
         f.write(seed)
         f.close()
+def generate_ap_key_pair():
+      private_key = rsa.generate_private_key(
+                        public_exponent=65537,
+                        key_size=2048
+                    )
+      pem_private_key = private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                        encryption_algorithm=serialization.NoEncryption()
+                    )
+      pem_public_key = private_key.public_key().public_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PublicFormat.SubjectPublicKeyInfo
+                    )
+      ap_priv = "#define AP_PRIV " + '"' + pem_private_key.decode("ascii") + '"\n'
+      ap_pub  = "#define AP_PUB  " + '"' + pem_public_key.decode("ascii") + '"\n'
+      f = open("global_secrets.h", 'a')
+      f.write(ap_priv)
+      f.write(ap_pub)
+      f.close()
+
+def generate_comp_key_pair(n):
+      f = open("global_secrets.h", 'a')
+      for i in range(0, int(n)):
+                private_key = rsa.generate_private_key(
+                        public_exponent=65537,
+                        key_size=2048
+                )
+                
+                pem_private_key = private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                        encryption_algorithm=serialization.NoEncryption()
+                )
+                pem_public_key = private_key.public_key().public_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PublicFormat.SubjectPublicKeyInfo
+                        )
+                comp_priv = "#define COMP"+str(i+1)+"_PRIV " + '"' + pem_private_key.decode("ascii") + '"\n'
+                comp_pub  = "#define COMP"+str(i+1)+"_PUB  " + '"' + pem_public_key.decode("ascii") + '"\n'
+                f.write(comp_priv)
+                f.write(comp_pub)
+                
+
+      f.close() 
+
 
 def main():
     # 0 - Token 
@@ -74,6 +122,8 @@ def main():
     generate_nonce()
     generate_ap_seed()
     generate_comp_seed()
+    generate_ap_key_pair()
+    generate_comp_key_pair(input("How many components are you provisioning?"))
 
 if __name__ == "__main__":
     main()
