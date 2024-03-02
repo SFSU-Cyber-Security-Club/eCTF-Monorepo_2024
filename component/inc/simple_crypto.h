@@ -22,6 +22,7 @@
 #define BLOCK_SIZE AES_BLOCK_SIZE
 #define KEY_SIZE 16
 #define HASH_SIZE MD5_DIGEST_SIZE
+#define RSA_KEY_LENGTH 256
 
 /******************************** FUNCTION PROTOTYPES ********************************/
 /** @brief Encrypts plaintext using a symmetric cipher

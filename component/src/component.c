@@ -84,12 +84,7 @@ typedef struct {
 } scan_message;
 
 // Data structure for holding the attestation data
-typedef struct {
-    char ATTEST_CUST[100];
-    char ATTEST_DATE[100]; // change the size to macro constant checking length of actual data MACRO LEN(ATTE..)
-    char ATTEST_LOCA[100];
-    uint8_t params[MAX_I2C_MESSAGE_LEN-50]; // Very bad
-} attestation_data;
+
 
 /********************************* FUNCTION DECLARATIONS **********************************/
 // Core function definitions
@@ -152,21 +147,65 @@ nonce_t generate_nonce()
     return *((nonce_t *)(hash_out));
 }
 
-attestation_data* AT_ENCRYPTED_DATA;
+// Structure to hold the encrypted data
+typedef struct {
+    uint8_t AT_ECUST[RSA_KEY_LENGTH];
+    uint8_t AT_ELOCA[RSA_KEY_LENGTH];
+    uint8_t AT_EDATE[RSA_KEY_LENGTH];
+} attestation_data;
 
-void encrypt_AT(char* AT_DATA[], char* ATAP_PUB_KEY)
+uint8_t AT_DATA_DIGEST[HASH_SIZE];
+
+// Key to help encrypt AT data with AP's public key
+RsaKey AP_PUB_FOR_AT;
+
+// Encrypted AT Data
+attestation_data encrypted_AT;
+
+void init_key(RsaKey* key, uint8_t DER_key)
 {
-    int i = 0;
-    char* AT_DATA[3] = {ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER};
+    int ret = 0;
+    int idx = 0;
 
-    for(; i < 3; i++)
-    {
-        int byte_length = strlen(AT_DATA[i]);
-        wc_RsaPublicEncrypt(AT_DATA[i], byte_length, AT_ENCRYPTED_DATA[i], sizeof(AT_ENCRYPTED_DATA[i]), keyhere, rng generator);
-    }
-    // hash and store the hash value result somewhere
-    
-    // Erase any references of the attestation data from memory
+    // Initialize key structure
+    ret = wc_InitRsaKey(&key, NULL);
+    if(ret < 0) { print_error(" Error initializing RsaKey \n");}
+
+    // Use existing public key to finalize the creation of our pub
+    ret = wc_RsaPublicKeyDecode(DER_key, &idx, &key, sizeof(DER_key));
+    if(ret < 0) { print_error(" Error adding existing pub key in RsaKey \n");}
+
+    print_debug("Generated pub key for attestation data\n");
+
+    return;
+}
+
+
+void encrypt_AT(attestation_data* encrypted, RsaKey* key)
+{
+    int ret = 0;
+    WC_RNG rng;
+
+    ret = wc_InitRng(&rng);
+    if(ret < 0) { print_error("Error generating randomizer for encryption \n");}
+   
+    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_LOC, 
+                            sizeof(ATTESTATION_LOC), 
+                            &encrypted->AT_ELOCA, sizeof(encrypted->AT_ELOCA), key, rng);
+
+    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_DATE, 
+                            sizeof(ATTESTATION_DATE), 
+                            &encrypted->AT_EDATE, sizeof(encrypted->AT_EDATE), key, rng);
+
+    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_CUSTOMER, 
+                            sizeof(ATTESTATION_CUSTOMER), 
+                            &encrypted->AT_ECUST, sizeof(encrypted->AT_ECUST), key, rng);
+
+    if(ret < 0) { print_error("Failed to encrypt one or more of the AT data \n");}
+    // hash and store the hash value result in the digest global var
+    hash(&encrypted, sizeof(attestation_data), AT_DATA_DIGEST);
+
+    return;
 }
 
 /******************************* FUNCTION DEFINITIONS *********************************/
@@ -292,7 +331,8 @@ int main(void) {
     __enable_irq();
 
     // Encrypt component's AT data with AP's public key
-    encrypt_AT(ATAP_PUB_KEY);
+    init_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB);
+    encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT);
 
     // Seed our random number generator using build time secret
     srand((unsigned int)COMP_SEED);

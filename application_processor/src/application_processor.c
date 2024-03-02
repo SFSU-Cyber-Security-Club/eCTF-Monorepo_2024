@@ -166,6 +166,8 @@ void init() {
     // Seed our random number generator using build time secret
     srand((unsigned int)AP_SEED);
 
+    // Generate private public key here using wolfssl
+
     // Setup Flash
     flash_simple_init();
 
