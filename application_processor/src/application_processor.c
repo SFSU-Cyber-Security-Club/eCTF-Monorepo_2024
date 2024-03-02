@@ -62,6 +62,7 @@
 #define SUCCESS_RETURN 0
 #define ERROR_RETURN -1
 
+int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len);
 /******************************** TYPE DEFINITIONS ********************************/
 // Data structure for sending commands to component
 // Params allows for up to MAX_I2C_MESSAGE_LEN - 2 bytes to be send
@@ -172,7 +173,8 @@ void init() {
     // Generate private key here using wolfssl
     
     // For AT Data
-    init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT));
+    if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0)
+    { return; }
 
     // Setup Flash
     flash_simple_init();
@@ -197,18 +199,24 @@ void init() {
     board_link_init();
 }
 
-void init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
+int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
 {
     int ret = 0;
-    int idx = 0;
+    unsigned int idx = 0;
 
     // Initialize key structure
-    ret = wc_InitRsaKey(&key, NULL);
-    if(ret < 0) { print_error(" Error initializing RsaKey \n");}
+    ret = wc_InitRsaKey(key, NULL);
+    if(ret < 0) { 
+        print_error(" Error initializing RsaKey \n");
+        return ERROR_RETURN;
+    }
 
     // Use existing public key to finalize the creation of our pub
-    ret = wc_RsaPrivateKeyDecode(DER_key, &idx, &key, len);
-    if(ret < 0) { print_error(" Error adding existing pub key in RsaKey \n");}
+    ret = wc_RsaPrivateKeyDecode(DER_Key, &idx, key, len);
+    if(ret < 0) { 
+        print_error(" Error adding existing pub key in RsaKey \n");
+        return ERROR_RETURN;
+    }
 
     print_debug("Generated pub key for attestation data\n");
 
@@ -380,7 +388,7 @@ int attest_component(uint32_t component_id) {
     command->opcode = COMPONENT_CMD_ATTEST;
 
     // Send out command first, we'll be expecting exactly 4 messages
-    secure_send(addr, transmit_buffer, sizeof(transmit_buffer));
+    secure_send(addr, transmit_buffer, sizeof(command));
     for(; i < 4; i++)
     {
          int len = secure_receive(addr, receive_buffer);
@@ -402,14 +410,14 @@ int attest_component(uint32_t component_id) {
     
     hash(plaintext_attest, sizeof(plaintext_attest), hash_test);
 
-    if (strncmp(hash_test, HASH_DIGEST, HASH_SIZE) != 0)
+    if (memcmp(hash_test, HASH_DIGEST, HASH_SIZE) != 0)
     {
         print_error("Failure to verify the integrity of attestation data\n");
         return ERROR_RETURN;
     }
 
     bzero(receive_buffer, sizeof(receive_buffer));
-    sprintf(receive_buffer,"CUST>%s\nLOC>%s\nDATE>%s\n", plaintext_attest[0], plaintext_attest[1], plaintext_attest[2]);
+    sprintf((char*)receive_buffer,"CUST>%s\nLOC>%s\nDATE>%s\n", plaintext_attest[0], plaintext_attest[1], plaintext_attest[2]);
     // Print out attestation data 
     print_info("C>0x%08x\n", component_id);
     //"LOC>%s\nDATE>%s\nCUST>%s\n"
