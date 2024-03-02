@@ -162,50 +162,50 @@ RsaKey AP_PUB_FOR_AT;
 // Encrypted AT Data
 attestation_data encrypted_AT;
 
-void init_at_pub_key(RsaKey* key, uint8_t* DER_Key, int len)
+int init_at_pub_key(RsaKey* key, uint8_t* DER_Key, int len)
 {
     int ret = 0;
-    int idx = 0;
+    unsigned int idx = 0;
 
     // Initialize key structure
-    ret = wc_InitRsaKey(&key, NULL);
-    if(ret < 0) { print_error(" Error initializing RsaKey \n");}
+    ret = wc_InitRsaKey(key, NULL);
+    if(ret < 0) { return -1;}
 
     // Use existing public key to finalize the creation of our pub
-    ret = wc_RsaPublicKeyDecode(DER_Key, &idx, &key, len);
-    if(ret < 0) { print_error(" Error adding existing pub key in RsaKey \n");}
+    ret = wc_RsaPublicKeyDecode(DER_Key, &idx, key, len);
+    if(ret < 0) { return -1;}
 
-    print_debug("Generated pub key for attestation data\n");
+    //print_debug("Generated pub key for attestation data\n");
 
-    return;
+    return 0;
 }
 
 
-void encrypt_AT(attestation_data* encrypted, RsaKey* key)
+int encrypt_AT(attestation_data* encrypted, RsaKey* key)
 {
     int ret = 0;
     WC_RNG rng;
 
     ret = wc_InitRng(&rng);
-    if(ret < 0) { print_error("Error generating randomizer for encryption \n");}
+    if(ret < 0) { return -1;}
    
     ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_LOC, 
                             sizeof(ATTESTATION_LOC), 
-                            &encrypted->AT_ELOCA, sizeof(encrypted->AT_ELOCA), key, rng);
+                            encrypted->AT_ELOCA, sizeof(encrypted->AT_ELOCA), key, &rng);
 
     ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_DATE, 
                             sizeof(ATTESTATION_DATE), 
-                            &encrypted->AT_EDATE, sizeof(encrypted->AT_EDATE), key, rng);
+                            encrypted->AT_EDATE, sizeof(encrypted->AT_EDATE), key, &rng);
 
     ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_CUSTOMER, 
                             sizeof(ATTESTATION_CUSTOMER), 
-                            &encrypted->AT_ECUST, sizeof(encrypted->AT_ECUST), key, rng);
+                            encrypted->AT_ECUST, sizeof(encrypted->AT_ECUST), key, &rng);
 
-    if(ret < 0) { print_error("Failed to encrypt one or more of the AT data \n");}
+    if(ret < 0) { return -1;}
     // hash and store the hash value result in the digest global var
     hash(&encrypted, sizeof(attestation_data), AT_DATA_DIGEST);
 
-    return;
+    return 0;
 }
 
 /******************************* FUNCTION DEFINITIONS *********************************/
@@ -319,12 +319,20 @@ void process_attest() {
     int copied = 0;
     // Since we're bottlenecked with i2c message size, send exactly 4 messages
     // AT_CUST, AT_LOC, AT_DATE, HASH DIGEST
-    uint8_t DATA[4] = {encrypted_AT.AT_ECUST, encrypted_AT.AT_ELOCA, encrypted_AT.AT_EDATE, AT_DATA_DIGEST};
+    uint8_t* DATA[4] = {encrypted_AT.AT_ECUST, encrypted_AT.AT_ELOCA, encrypted_AT.AT_EDATE, AT_DATA_DIGEST};
 
     for(; i < 4; i++)
     {
         memset(transmit_buffer, 0 , sizeof(transmit_buffer));
-        copied = memcpy(transmit_buffer, DATA[i], sizeof(DATA[i]));
+        if(i == 4)
+        {   
+            copied = HASH_SIZE;
+            memcpy(transmit_buffer, DATA[i], HASH_SIZE);
+        } else {
+            copied = RSA_KEY_LENGTH;
+            memcpy(transmit_buffer, DATA[i], RSA_KEY_LENGTH); // Fix the size here
+        }
+        
         secure_send(transmit_buffer, copied);
     }
     return;
@@ -339,8 +347,11 @@ int main(void) {
     __enable_irq();
 
     // Encrypt component's AT data with AP's public key
-    init_at_pub_key(&AP_PUB_FOR_AT, AP_PUB_AT, sizeof(AP_PUB_AT));
-    encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT);
+    if (init_at_pub_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB_AT, sizeof(AP_PUB_AT)) < 0
+    || encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT) < 0 )
+    {
+        return -1;
+    }
 
     // Seed our random number generator using build time secret
     srand((unsigned int)COMP_SEED);
