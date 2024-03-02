@@ -1,5 +1,6 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+import binascii
 import hashlib
 import os
 
@@ -63,22 +64,30 @@ def generate_comp_seed():
         f = open("global_secrets.h", 'a')
         f.write(seed)
         f.close()
+
 def generate_ap_key_pair():
       private_key = rsa.generate_private_key(
                         public_exponent=65537,
                         key_size=2048
                     )
-      pem_private_key = private_key.private_bytes(
-                        encoding=serialization.Encoding.PEM,
+      der_private_key = private_key.private_bytes(
+                        encoding=serialization.Encoding.DER,
                         format=serialization.PrivateFormat.TraditionalOpenSSL,
                         encryption_algorithm=serialization.NoEncryption()
                     )
-      pem_public_key = private_key.public_key().public_bytes(
-                        encoding=serialization.Encoding.PEM,
+      der_public_key = private_key.public_key().public_bytes(
+                        encoding=serialization.Encoding.DER,
                         format=serialization.PublicFormat.SubjectPublicKeyInfo
                     )
-      ap_priv = "#define AP_PRIV " + '"' + pem_private_key.decode("ascii") + '"\n'
-      ap_pub  = "#define AP_PUB  " + '"' + pem_public_key.decode("ascii") + '"\n'
+
+      der_private_key_hex = binascii.hexlify(der_private_key).decode('utf-8')
+      der_public_key_hex = binascii.hexlify(der_public_key).decode('utf-8')
+
+      formatted_private_key = '\\x'+'\\x'.join(a+b for a,b in zip(der_private_key_hex[::2],der_private_key_hex[1::2]))
+      formatted_public_key = '\\x'+'\\x'.join(a+b for a,b in zip(der_public_key_hex[::2],der_public_key_hex[1::2]))
+
+      ap_priv = "#define AP_PRIV_AT " + '"' + formatted_private_key + '"\n'
+      ap_pub  = "#define AP_PUB_AT  " + '"' + formatted_public_key + '"\n'
       f = open("global_secrets.h", 'a')
       f.write(ap_priv)
       f.write(ap_pub)
@@ -92,17 +101,25 @@ def generate_comp_key_pair(n):
                         key_size=2048
                 )
                 
-                pem_private_key = private_key.private_bytes(
-                        encoding=serialization.Encoding.PEM,
+                der_private_key = private_key.private_bytes(
+                        encoding=serialization.Encoding.DER,
                         format=serialization.PrivateFormat.TraditionalOpenSSL,
                         encryption_algorithm=serialization.NoEncryption()
                 )
-                pem_public_key = private_key.public_key().public_bytes(
-                        encoding=serialization.Encoding.PEM,
+                der_public_key = private_key.public_key().public_bytes(
+                        encoding=serialization.Encoding.DER,
                         format=serialization.PublicFormat.SubjectPublicKeyInfo
                         )
-                comp_priv = "#define COMP"+str(i+1)+"_PRIV " + '"' + pem_private_key.decode("ascii") + '"\n'
-                comp_pub  = "#define COMP"+str(i+1)+"_PUB  " + '"' + pem_public_key.decode("ascii") + '"\n'
+
+                der_private_key_hex = binascii.hexlify(der_private_key).decode('utf-8')
+                der_public_key_hex = binascii.hexlify(der_public_key).decode('utf-8')
+
+                formatted_private_key = '\\x'+'\\x'.join(a+b for a,b in zip(der_private_key_hex[::2],der_private_key_hex[1::2]))
+                formatted_public_key = '\\x'+'\\x'.join(a+b for a,b in zip(der_public_key_hex[::2],der_public_key_hex[1::2]))
+
+
+                comp_priv = "#define COMP"+str(i+1)+"_PRIV " + '"' + formatted_private_key + '"\n'
+                comp_pub  = "#define COMP"+str(i+1)+"_PUB  " + '"' + formatted_public_key + '"\n'
                 f.write(comp_priv)
                 f.write(comp_pub)
                 
@@ -122,7 +139,9 @@ def main():
     generate_nonce()
     generate_ap_seed()
     generate_comp_seed()
-    generate_ap_key_pair()
+
+    # This gets ugly 
+    generate_ap_key_pair() # FOR AT ENCRYPTION
     generate_comp_key_pair(input("How many components are you provisioning?"))
 
 if __name__ == "__main__":

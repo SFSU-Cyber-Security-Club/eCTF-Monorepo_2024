@@ -162,7 +162,7 @@ RsaKey AP_PUB_FOR_AT;
 // Encrypted AT Data
 attestation_data encrypted_AT;
 
-void init_key(RsaKey* key, uint8_t DER_key)
+void init_at_pub_key(RsaKey* key, uint8_t* DER_Key, int len)
 {
     int ret = 0;
     int idx = 0;
@@ -172,7 +172,7 @@ void init_key(RsaKey* key, uint8_t DER_key)
     if(ret < 0) { print_error(" Error initializing RsaKey \n");}
 
     // Use existing public key to finalize the creation of our pub
-    ret = wc_RsaPublicKeyDecode(DER_key, &idx, &key, sizeof(DER_key));
+    ret = wc_RsaPublicKeyDecode(DER_Key, &idx, &key, len);
     if(ret < 0) { print_error(" Error adding existing pub key in RsaKey \n");}
 
     print_debug("Generated pub key for attestation data\n");
@@ -315,11 +315,19 @@ void process_validate(nonce_t nonce2, command_message* command) {
 
 void process_attest() {
     // The AP requested attestation. Respond with the attestation data
+    int i = 0;
+    int copied = 0;
+    // Since we're bottlenecked with i2c message size, send exactly 4 messages
+    // AT_CUST, AT_LOC, AT_DATE, HASH DIGEST
+    uint8_t DATA[4] = {encrypted_AT.AT_ECUST, encrypted_AT.AT_ELOCA, encrypted_AT.AT_EDATE, AT_DATA_DIGEST};
 
-
-    uint8_t len = sprintf((char*)transmit_buffer, "LOC>%s\nDATE>%s\nCUST>%s\n",
-                ATTESTATION_LOC, ATTESTATION_DATE, ATTESTATION_CUSTOMER) + 1;
-    secure_send(transmit_buffer, len);
+    for(; i < 4; i++)
+    {
+        memset(transmit_buffer, 0 , sizeof(transmit_buffer));
+        copied = memcpy(transmit_buffer, DATA[i], sizeof(DATA[i]));
+        secure_send(transmit_buffer, copied);
+    }
+    return;
 }
 
 /*********************************** MAIN *************************************/
@@ -331,7 +339,7 @@ int main(void) {
     __enable_irq();
 
     // Encrypt component's AT data with AP's public key
-    init_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB);
+    init_at_pub_key(&AP_PUB_FOR_AT, AP_PUB_AT, sizeof(AP_PUB_AT));
     encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT);
 
     // Seed our random number generator using build time secret
