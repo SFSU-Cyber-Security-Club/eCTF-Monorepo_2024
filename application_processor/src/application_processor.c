@@ -370,7 +370,6 @@ int attest_component(uint32_t component_id) {
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 
     // customer, location, date
-    uint8_t encrypted_attest[3][RSA_KEY_LENGTH];
     uint8_t plaintext_attest[3][RSA_KEY_LENGTH];
     uint8_t HASH_DIGEST[HASH_SIZE];
     // Set the I2C address of the component
@@ -384,18 +383,33 @@ int attest_component(uint32_t component_id) {
     secure_send(addr, transmit_buffer, sizeof(transmit_buffer));
     for(; i < 4; i++)
     {
-         
-
          int len = secure_receive(addr, receive_buffer);
          if (len == ERROR_RETURN) {
             print_error("Could not attest component\n");
             return ERROR_RETURN;
          }
+         if( i == 4)
+         {
+            memcpy(HASH_DIGEST, receive_buffer, HASH_SIZE);
+            break;
+         }
+         wc_RsaPrivateDecrypt(receive_buffer, sizeof(receive_buffer),
+                            plaintext_attest[i], RSA_KEY_LENGTH, &AP_AT_PRIV );
 
-        
     }
-   
 
+    uint8_t hash_test[HASH_SIZE];
+    
+    hash(plaintext_attest, sizeof(plaintext_attest), hash_test);
+
+    if (strncmp(hash_test, HASH_DIGEST, HASH_SIZE) != 0)
+    {
+        print_error("Failure to verify the integrity of attestation data\n");
+        return ERROR_RETURN;
+    }
+
+    bzero(receive_buffer, sizeof(receive_buffer));
+    sprintf(receive_buffer,"CUST>%s\nLOC>%s\nDATE>%s\n", plaintext_attest[0], plaintext_attest[1], plaintext_attest[2]);
     // Print out attestation data 
     print_info("C>0x%08x\n", component_id);
     //"LOC>%s\nDATE>%s\nCUST>%s\n"

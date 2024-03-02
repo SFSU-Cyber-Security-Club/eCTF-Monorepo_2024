@@ -68,7 +68,7 @@ def generate_comp_seed():
 def generate_ap_key_pair():
       private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=2048
+                        key_size=1024
                     )
       der_private_key = private_key.private_bytes(
                         encoding=serialization.Encoding.DER,
@@ -89,8 +89,11 @@ def generate_ap_key_pair():
       ap_priv = "#define AP_PRIV_AT " + '"' + formatted_private_key + '"\n'
       ap_pub  = "#define AP_PUB_AT  " + '"' + formatted_public_key + '"\n'
       f = open("global_secrets.h", 'a')
+      f.write("\n\n")
       f.write(ap_priv)
+      f.write("\n\n")
       f.write(ap_pub)
+      f.write("\n\n")
       f.close()
 
 def generate_comp_key_pair(n):
@@ -98,7 +101,7 @@ def generate_comp_key_pair(n):
       for i in range(0, int(n)):
                 private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=2048
+                        key_size=1024
                 )
                 
                 der_private_key = private_key.private_bytes(
@@ -120,8 +123,11 @@ def generate_comp_key_pair(n):
 
                 comp_priv = "#define COMP"+str(i+1)+"_PRIV " + '"' + formatted_private_key + '"\n'
                 comp_pub  = "#define COMP"+str(i+1)+"_PUB  " + '"' + formatted_public_key + '"\n'
+                f.write("\n\n")
                 f.write(comp_priv)
+                f.write("\n\n")
                 f.write(comp_pub)
+                f.write("\n\n")
                 
 
       f.close() 
