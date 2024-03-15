@@ -33,9 +33,6 @@ ENTRY=firmware_startup
 # lines to enable the eCTF Crypto Example.
 # WolfSSL must be included in this directory as wolfssl/
 # WolfSSL can be downloaded from: https://www.wolfssl.com/download/
-# Added this line to tell wolfssl that we are compiling firmware for a 
-# BARE-METAL machine, thus excluding the "sys/socket" header from being compiled
-PROJ_CFLAGS += -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DNO_WRITEV -DTIME_T_NOT_64BIT
 
 # Disable Crypto Example
 #CRYPTO_EXAMPLE=0
