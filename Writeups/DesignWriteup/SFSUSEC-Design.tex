@@ -135,6 +135,10 @@ Security requirement 4 (\textbf{SR4}) states that the attestation data is to be 
  matching the resulting hash of the data with the embedded digest that went along with it. This technique is inspired by modern 
  message authentication with message authentication codes (MAC) ensuring the integrity of data whenever it is in transit.
 
+ Complexities arise when integrating the encryption scheme into the build system of the MITRE reference design that this device relies on.
+ Due to technical difficulties, the attestation data cannot be encrypted at compile time, so the moment the component boots, it will encrypt the plaintext
+ attestation data at runtime.
+
 \subsection{Security Requirement 5}
 Security requirement five (\textbf{SR5}) requires us to ensure the integrity and authenticity of all
 post-boot MISC secure communications. Our plan to solve this challenge is to write validation
