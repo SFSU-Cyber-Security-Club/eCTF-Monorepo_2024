@@ -2,3 +2,5 @@ From the MITRE eCTF documentation, run the following openocd command to open up 
 
  openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -c "init"
 
+ openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -c "init; reset halt; max32xxx mass_erase 0; program {program.elf} verify exit"
+

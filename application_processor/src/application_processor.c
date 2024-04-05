@@ -158,7 +158,7 @@ int get_provisioned_ids(uint32_t* buffer) {
 
 // Initialize the device
 // This must be called on startup to initialize the flash and i2c interfaces
-void init() {
+void init(void) {
 
     // Enable global interrupts    
     __enable_irq();
@@ -194,7 +194,7 @@ typedef struct {
 	int timestamp;
 } plain_nonce;
 
-nonce_t generate_nonce()
+nonce_t generate_nonce(void)
 {
 	plain_nonce plain;
 	uint8_t hash_out[HASH_SIZE];
@@ -230,7 +230,7 @@ int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
 
 /******************************** COMPONENT COMMS ********************************/
 
-int scan_components() {
+int scan_components(void) {
     // Print out provisioned component IDs
     for (unsigned i = 0; i < flash_status.component_cnt; i++) {
         print_info("P>0x%08x\n", flash_status.component_ids[i]);
@@ -367,7 +367,7 @@ int attest_component(uint32_t component_id) {
 // Boot sequence
 // YOUR DESIGN MUST NOT CHANGE THIS FUNCTION
 // Boot message is customized through the AP_BOOT_MSG macro
-void boot() {
+void boot(void) {
     // Example of how to utilize included simple_crypto.h
     #ifdef CRYPTO_EXAMPLE
     // This string is 16 bytes long including null terminator
@@ -424,7 +424,7 @@ void boot() {
 
 // Compare the entered PIN to the correct PIN
 #define PIN_BUFSIZE 50
-int validate_pin() {
+int validate_pin(void) {
     char buf[PIN_BUFSIZE];
     recv_input("Enter pin: ", buf, PIN_BUFSIZE);
     if (!strcmp(buf, AP_PIN)) {
@@ -437,7 +437,7 @@ int validate_pin() {
 
 // Function to validate the replacement token
 #define TOK_BUFSIZE 50
-int validate_token() {
+int validate_token(void) {
     char buf[TOK_BUFSIZE];
     recv_input("Enter token: ", buf, TOK_BUFSIZE);
     if (!strcmp(buf, AP_TOKEN)) {
@@ -449,7 +449,7 @@ int validate_token() {
 }
 
 // Boot the components and board if the components validate
-void attempt_boot() {
+void attempt_boot(void) {
     nonce_t nonce2[flash_status.component_cnt];
     if (validate_components(nonce2)) {
         print_error("Components could not be validated\n");
@@ -470,7 +470,7 @@ void attempt_boot() {
 
 // Replace a component if the PIN is correct
 #define REP_BUFSIZE 50
-void attempt_replace() {
+void attempt_replace(void) {
     char buf[REP_BUFSIZE];
 
     if (validate_token()) {
@@ -508,7 +508,7 @@ void attempt_replace() {
 
 // Attest a component if the PIN is correct
 #define ATTEST_BUFSIZE 50
-void attempt_attest() {
+void attempt_attest(void) {
     char buf[ATTEST_BUFSIZE];
 
     if (validate_pin()) {
@@ -525,7 +525,7 @@ void attempt_attest() {
 /*********************************** MAIN *************************************/
 #define CMD_BUFSIZE 100
 
-int main() {
+int main(void) {
     // Initialize board
     init();
 
