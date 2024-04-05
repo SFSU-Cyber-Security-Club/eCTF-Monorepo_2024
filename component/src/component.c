@@ -324,7 +324,7 @@ void process_attest() {
     for(; i < 4; i++)
     {
         memset(transmit_buffer, 0 , sizeof(transmit_buffer));
-        if(i == 4)
+        if(i == 3)
         {   
             copied = HASH_SIZE;
             memcpy(transmit_buffer, DATA[i], HASH_SIZE);

@@ -173,8 +173,10 @@ void init() {
     // Generate private key here using wolfssl
     
     // For AT Data
-    if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0)
-    { return; }
+    if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0) { 
+        print_error("FAILED to initialize key, CRITICAL!\n");
+        return; 
+    }
 
     // Setup Flash
     flash_simple_init();
@@ -391,19 +393,21 @@ int attest_component(uint32_t component_id) {
     secure_send(addr, transmit_buffer, sizeof(command));
     for(; i < 4; i++)
     {
+         bzero(receive_buffer, sizeof(receive_buffer)); // Clean our buffer to not mess with the hash check
          int len = secure_receive(addr, receive_buffer);
          if (len == ERROR_RETURN) {
             print_error("Could not attest component\n");
             return ERROR_RETURN;
          }
-         if( i == 4)
+         // Hash comes last 
+         if(i == 3)
          {
-            memcpy(HASH_DIGEST, receive_buffer, HASH_SIZE);
+            memcpy(HASH_DIGEST, receive_buffer, sizeof(HASH_DIGEST));
             break;
          }
          wc_RsaPrivateDecrypt(receive_buffer, sizeof(receive_buffer),
                             plaintext_attest[i], RSA_KEY_LENGTH, &AP_AT_PRIV );
-
+                                               //sizeof(plaintext_attest[0]) 
     }
 
     uint8_t hash_test[HASH_SIZE];
