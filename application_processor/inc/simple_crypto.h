@@ -21,7 +21,7 @@
 /******************************** MACRO DEFINITIONS ********************************/
 #define BLOCK_SIZE AES_BLOCK_SIZE
 #define KEY_SIZE 16
-#define HASH_SIZE MD5_DIGEST_SIZE
+#define HASH_SIZE SHA_DIGEST_SIZE
 
 /******************************** FUNCTION PROTOTYPES ********************************/
 /** @brief Encrypts plaintext using a symmetric cipher
