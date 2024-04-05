@@ -31,9 +31,11 @@ def generate_sequence(is_pin):
         hashed_goodies = m.hexdigest()
 
         generate_hash_pins = "#define " + typesequence + " " + '"' + hashed_goodies + '"\n'
+        generate_length = "#define " + typesequence + "_BUFSIZE" + " " + str(len(hashed_goodies)) + '\n'
 
         f = open("global_secrets.h", 'a')
         f.write(generate_hash_pins)
+        f.write(generate_length)
         f.close()
         
         print("Hexed input = ", hashed_goodies)
