@@ -443,7 +443,7 @@ int validate_pin(void) {
 
 // Function to validate the replacement token
 int validate_token(void) {
-    char buf[TOK_BUFSIZE];
+    char buf[TOKEN_BUFSIZE];
     uint8_t hash_out[HASH_SIZE];
     
     recv_input("Enter token: ", buf, sizeof(buf));
