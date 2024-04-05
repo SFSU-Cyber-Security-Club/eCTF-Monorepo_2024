@@ -17,11 +17,15 @@
 
 #include "wolfssl/wolfcrypt/aes.h"
 #include "wolfssl/wolfcrypt/hash.h"
+#include "wolfssl/wolfcrypt/rsa.h"
 
 /******************************** MACRO DEFINITIONS ********************************/
 #define BLOCK_SIZE AES_BLOCK_SIZE
 #define KEY_SIZE 16
+
 #define HASH_SIZE SHA_DIGEST_SIZE
+#define RSA_KEY_LENGTH 256
+
 
 /******************************** FUNCTION PROTOTYPES ********************************/
 /** @brief Encrypts plaintext using a symmetric cipher

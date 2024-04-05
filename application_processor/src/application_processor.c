@@ -62,6 +62,7 @@
 #define SUCCESS_RETURN 0
 #define ERROR_RETURN -1
 
+int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len);
 /******************************** TYPE DEFINITIONS ********************************/
 // Data structure for sending commands to component
 // Params allows for up to MAX_I2C_MESSAGE_LEN - 2 bytes to be send
@@ -106,6 +107,9 @@ typedef enum {
 /********************************* GLOBAL VARIABLES **********************************/
 // Variable for information stored in flash memory
 flash_entry flash_status;
+
+// Stores the private key for the AP AT Data
+RsaKey AP_AT_PRIV;
 
 /******************************* POST BOOT FUNCTIONALITY *********************************/
 /**
@@ -166,6 +170,14 @@ void init(void) {
     // Seed our random number generator using build time secret
     srand((unsigned int)AP_SEED);
 
+    // Generate private key here using wolfssl
+    
+    // For AT Data
+    if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0) { 
+        print_error("FAILED to initialize key, CRITICAL!\n");
+        return; 
+    }
+
     // Setup Flash
     flash_simple_init();
 
@@ -187,6 +199,30 @@ void init(void) {
     
     // Initialize board link interface
     board_link_init();
+}
+
+int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
+{
+    int ret = 0;
+    unsigned int idx = 0;
+
+    // Initialize key structure
+    ret = wc_InitRsaKey(key, NULL);
+    if(ret < 0) { 
+        print_error(" Error initializing RsaKey \n");
+        return ERROR_RETURN;
+    }
+
+    // Use existing public key to finalize the creation of our pub
+    ret = wc_RsaPrivateKeyDecode(DER_Key, &idx, key, len);
+    if(ret < 0) { 
+        print_error(" Error adding existing pub key in RsaKey \n");
+        return ERROR_RETURN;
+    }
+
+    print_debug("Generated pub key for attestation data\n");
+
+    return;
 }
 
 typedef struct {
@@ -339,9 +375,13 @@ int boot_components(nonce_t *nonce2) {
 
 int attest_component(uint32_t component_id) {
     // Buffers for board link communication
+    int i = 0;
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 
+    // customer, location, date
+    uint8_t plaintext_attest[3][RSA_KEY_LENGTH];
+    uint8_t HASH_DIGEST[HASH_SIZE];
     // Set the I2C address of the component
     i2c_addr_t addr = component_id_to_i2c_addr(component_id);
 
@@ -349,15 +389,42 @@ int attest_component(uint32_t component_id) {
     command_message* command = (command_message*) transmit_buffer;
     command->opcode = COMPONENT_CMD_ATTEST;
 
-    // Send out command and receive result
-    int len = issue_cmd(addr, transmit_buffer, receive_buffer);
-    if (len == ERROR_RETURN) {
-        print_error("Could not attest component\n");
+    // Send out command first, we'll be expecting exactly 4 messages
+    secure_send(addr, transmit_buffer, sizeof(command));
+    for(; i < 4; i++)
+    {
+         bzero(receive_buffer, sizeof(receive_buffer)); // Clean our buffer to not mess with the hash check
+         int len = secure_receive(addr, receive_buffer);
+         if (len == ERROR_RETURN) {
+            print_error("Could not attest component\n");
+            return ERROR_RETURN;
+         }
+         // Hash comes last 
+         if(i == 3)
+         {
+            memcpy(HASH_DIGEST, receive_buffer, sizeof(HASH_DIGEST));
+            break;
+         }
+         wc_RsaPrivateDecrypt(receive_buffer, sizeof(receive_buffer),
+                            plaintext_attest[i], RSA_KEY_LENGTH, &AP_AT_PRIV );
+                                               //sizeof(plaintext_attest[0]) 
+    }
+
+    uint8_t hash_test[HASH_SIZE];
+    
+    hash(plaintext_attest, sizeof(plaintext_attest), hash_test);
+
+    if (memcmp(hash_test, HASH_DIGEST, HASH_SIZE) != 0)
+    {
+        print_error("Failure to verify the integrity of attestation data\n");
         return ERROR_RETURN;
     }
 
+    bzero(receive_buffer, sizeof(receive_buffer));
+    sprintf((char*)receive_buffer,"CUST>%s\nLOC>%s\nDATE>%s\n", plaintext_attest[0], plaintext_attest[1], plaintext_attest[2]);
     // Print out attestation data 
     print_info("C>0x%08x\n", component_id);
+    //"LOC>%s\nDATE>%s\nCUST>%s\n"
     print_info("%s", receive_buffer);
     return SUCCESS_RETURN;
 }

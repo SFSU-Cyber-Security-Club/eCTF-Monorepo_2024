@@ -21,7 +21,9 @@
 pkgs.mkShell {
   buildInputs = [
     pkgs.gnumake
-    pkgs.python39
+    (pkgs.python39.withPackages (python-pkgs: [
+      python-pkgs.cryptography
+    ]))
     pkgs.gcc-arm-embedded
     pkgs.poetry
     pkgs.cacert
