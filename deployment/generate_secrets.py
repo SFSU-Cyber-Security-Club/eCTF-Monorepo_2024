@@ -70,7 +70,7 @@ def generate_comp_seed():
 def generate_ap_key_pair():
       private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=1024
+                        key_size=2048
                     )
       der_private_key = private_key.private_bytes(
                         encoding=serialization.Encoding.DER,
@@ -100,10 +100,10 @@ def generate_ap_key_pair():
 
 def generate_comp_key_pair(n):
       f = open("global_secrets.h", 'a')
-      for i in range(0, int(n)):
+      for i in range(0, int(n)): # In case we ever wanted multiple keys because we're fancy
                 private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=1024
+                        key_size=2048
                 )
                 
                 der_private_key = private_key.private_bytes(
@@ -150,7 +150,7 @@ def main():
 
     # This gets ugly 
     generate_ap_key_pair() # FOR AT ENCRYPTION
-    generate_comp_key_pair(input("How many components are you provisioning?"))
+    generate_comp_key_pair(1) # Just use one key pair for all components, ez
 
 if __name__ == "__main__":
     main()

@@ -63,6 +63,7 @@
 #define ERROR_RETURN -1
 
 int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len);
+int init_comp_pub_key(RsaKey* key, uint8_t* DER_Key, int len);
 /******************************** TYPE DEFINITIONS ********************************/
 // Data structure for sending commands to component
 // Params allows for up to MAX_I2C_MESSAGE_LEN - 2 bytes to be send
@@ -111,6 +112,9 @@ flash_entry flash_status;
 // Stores the private key for the AP AT Data
 RsaKey AP_AT_PRIV;
 
+// Stores the public key for the COMP Data and secure communication
+RsaKey COMP_PUB;
+
 /******************************* POST BOOT FUNCTIONALITY *********************************/
 /**
  * @brief Secure Send 
@@ -124,7 +128,44 @@ RsaKey AP_AT_PRIV;
 
 */
 int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
-    return send_packet(address, len, buffer);
+    // Use components public key to send messages yay
+    // Hash the original buffer first, and append this to the message
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t hash_out[HASH_SIZE];
+    WC_RNG rng;
+    int preserved_len = 0;
+    int length = 0;
+    
+    // Initialize the Randomizer :P
+    if(wc_InitRng(&rng) < 0) { 
+         print_error("Randomizer failed to initialize - suffer\n");
+         return ERROR_RETURN;
+    }
+
+    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &rng);
+     if(length < 0) { 
+         print_error("Public encryption failed - CRITICAL\n");
+         return ERROR_RETURN;
+    }
+        
+    preserved_len = length = send_packet(address, length, encrypt_buffer);
+    if(length < 0) { 
+         print_error("Packet failed to send!\n");
+         return ERROR_RETURN;
+    }
+   
+    // Send another message that digests the plaintext for message integrity
+    if (hash(buffer, len , hash_out) != 0) {
+		print_error("Error: hash\n");
+    }
+
+    length = send_packet(address, sizeof(hash_out), hash_out);
+    if(length < 0) { 
+         print_error("Hash packet failed to send\n");
+         return ERROR_RETURN;
+    }
+
+    return preserved_len;
 }
 
 /**
@@ -139,7 +180,45 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
  * This function must be implemented by your team to align with the security requirements.
 */
 int secure_receive(i2c_addr_t address, uint8_t* buffer) {
-    return poll_and_receive_packet(address, buffer);
+    // Use AP's private key to decrypt and validate the message 
+    // Expect two messages.. the ciphertext and the hash
+    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t hash_out[HASH_SIZE];
+    int preserved_len = 0;
+    int len = 0;
+
+    // The ciphertext
+    preserved_len = len = poll_and_receive_packet(address, buffer);
+
+    if(len > sizeof(decrypted_buffer))
+    {
+        print_error("Received buffer is greater than expected and will overflow, aborted\n");
+        return ERROR_RETURN;
+    }
+
+    len = wc_RsaPrivateDecrypt(buffer, len ,
+                            decrypted_buffer, sizeof(decrypted_buffer), &AP_AT_PRIV );
+    if (len < 0) {
+        print_error("Decryption ERROR - Critical\n");
+        return ERROR_RETURN;
+    }
+
+    // The hash
+    poll_and_receive_packet(address, buffer);
+
+    if (hash(decrypted_buffer, len, hash_out) != 0) {
+		print_error("Error: hash\n");
+    }
+
+    if (strcmp((char*)hash_out, (char*)buffer)) {
+        print_error("ERROR - Message has been vandalized\n");
+        return ERROR_RETURN;
+    }
+
+    bzero(decrypted_buffer, sizeof(decrypted_buffer));
+    memcpy(buffer, decrypted_buffer, len);
+
+    return preserved_len;
 }
 
 /**
@@ -174,9 +253,16 @@ void init(void) {
     
     // For AT Data
     if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0) { 
-        print_error("FAILED to initialize key, CRITICAL!\n");
+        print_error("FAILED to initialize key for private component, CRITICAL!\n");
         return; 
     }
+
+    // For Comp Data 
+    if( init_comp_pub_key(&COMP_PUB, (uint8_t*)COMP1_PUB, sizeof(COMP_PUB)) < 0) { 
+        print_error("FAILED to initialize key for public component, CRITICAL!\n");
+        return; 
+    }
+
 
     // Setup Flash
     flash_simple_init();
@@ -222,8 +308,33 @@ int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
 
     print_debug("Generated pub key for attestation data\n");
 
-    return;
+    return 0;
 }
+
+int init_comp_pub_key(RsaKey* key, uint8_t* DER_Key, int len)
+{
+    int ret = 0;
+    unsigned int idx = 0;
+
+    // Initialize key structure
+    ret = wc_InitRsaKey(key, NULL);
+    if(ret < 0) { 
+        print_error(" Error initializing RsaKey \n");
+        return ERROR_RETURN;    
+    }
+
+    // Use existing public key to finalize the creation of our pub
+    ret = wc_RsaPublicKeyDecode(DER_Key, &idx, key, len);
+    if(ret < 0) { 
+        print_error(" Error adding existing pub key in RsaKey \n");
+        return ERROR_RETURN;
+    }
+
+    //print_debug("Generated pub key for attestation data\n");
+
+    return 0;
+}
+
 
 typedef struct {
 	int rand;
@@ -380,7 +491,7 @@ int attest_component(uint32_t component_id) {
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 
     // customer, location, date
-    uint8_t plaintext_attest[3][RSA_KEY_LENGTH];
+    uint8_t plaintext_attest[3][MAX_I2C_MESSAGE_LEN];
     uint8_t HASH_DIGEST[HASH_SIZE];
     // Set the I2C address of the component
     i2c_addr_t addr = component_id_to_i2c_addr(component_id);
@@ -406,7 +517,7 @@ int attest_component(uint32_t component_id) {
             break;
          }
          wc_RsaPrivateDecrypt(receive_buffer, sizeof(receive_buffer),
-                            plaintext_attest[i], RSA_KEY_LENGTH, &AP_AT_PRIV );
+                            plaintext_attest[i], MAX_I2C_MESSAGE_LEN, &AP_AT_PRIV );
                                                //sizeof(plaintext_attest[0]) 
     }
 
@@ -495,7 +606,7 @@ int validate_pin(void) {
     uint8_t hash_out[HASH_SIZE];
     recv_input("Enter pin: ", buf, sizeof(buf));
 
-    if (hash(&buf, sizeof(buf), hash_out) != 0) {
+    if (hash(buf, sizeof(buf), hash_out) != 0) {
 		print_error("Error: hash\n");
     }
         // Compares the hashes!
@@ -515,7 +626,7 @@ int validate_token(void) {
     
     recv_input("Enter token: ", buf, sizeof(buf));
 
-    if (hash(&buf, sizeof(buf), hash_out) != 0) {
+    if (hash(buf, sizeof(buf), hash_out) != 0) {
 		print_error("Error: hash\n");
     }
 

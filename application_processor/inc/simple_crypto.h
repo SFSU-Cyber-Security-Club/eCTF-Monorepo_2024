@@ -24,7 +24,6 @@
 #define KEY_SIZE 16
 
 #define HASH_SIZE SHA_DIGEST_SIZE
-#define RSA_KEY_LENGTH 256
 
 
 /******************************** FUNCTION PROTOTYPES ********************************/
