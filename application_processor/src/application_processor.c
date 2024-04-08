@@ -305,6 +305,8 @@ int init(void) {
     
     // Initialize board link interface
     board_link_init();
+
+    return 0;
 }
 
 int init_ap_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
