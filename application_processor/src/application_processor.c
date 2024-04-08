@@ -246,13 +246,8 @@ int init(void) {
         return -999;
     }*/
 
-
     // Seed our random number generator using build time secret
     srand((unsigned int)AP_SEED);
-     
-    #ifdef WC_RNG_SEED_CB
-    wc_SetSeed_Cb(wc_GenerateSeed);
-    #endif
 
     // Generate private key here using wolfssl
     
