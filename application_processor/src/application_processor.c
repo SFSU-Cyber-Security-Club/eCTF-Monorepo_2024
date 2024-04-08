@@ -137,8 +137,8 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     int ret = 0;
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
-    if(ret != 0) { 
-         print_error("Public encryption failed - CRITICAL %s and %d!!!\n", buffer, ret);
+    if(ret < 0) { 
+         print_error("Public encryption failed - CRITICAL string is: %s and return is :%d and len is :%d!!!\n", buffer, ret, len);
          return ERROR_RETURN;
     }
         
