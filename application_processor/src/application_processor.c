@@ -111,8 +111,8 @@ flash_entry flash_status;
 
 // Stores the private key for the AP AT Data
 RsaKey AP_AT_PRIV;
-RNG AP_rng;
-
+WC_RNG AP_rng;
+int ERROR_YAY; // TESTING PURPOSES REMOVE AFTER
 // Stores the public key for the COMP Data and secure communication
 RsaKey COMP_PUB;
 
@@ -140,7 +140,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
 
     length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
      if(length < 0) { 
-         print_error("Public encryption failed - CRITICAL\n");
+         print_error("Public encryption failed - CRITICAL %d \n", ERROR_YAY);
          return ERROR_RETURN;
     }
         
@@ -254,9 +254,10 @@ int init(void) {
     }
 
     // Initialize the Randomizer for private communication :P
-    int ret;
-    if(wc_InitRng(&AP_rng) != 0) { 
-         print_error("Randomizer failed to initialize - suffer %d \n", ret);
+    int ret = wc_InitRng(&AP_rng); 
+    if(ret != 0) { 
+         print_error("Randomizer failed to initialize - suffer \n");
+         ERROR_YAY = ret; 
          return 0; // should be -2 but switching to 0 for testing purposes
     }
 
