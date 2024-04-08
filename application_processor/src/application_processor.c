@@ -18,7 +18,6 @@
 #include "mxc_delay.h"
 #include "mxc_device.h"
 #include "nvic_table.h"
-// #include "trng.h" // True randomness generator
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -131,22 +130,21 @@ RsaKey COMP_PUB;
 int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     // Use components public key to send messages yay
     // Hash the original buffer first, and append this to the message
-    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN]; // regardless of input, rsa ciphertext will be equal to the modulus
     uint8_t hash_out[HASH_SIZE];
+    int length = RSA_KEY_LENGTH; // Encrypted messages will be a constant length.. /|
     int preserved_len = 0;
-    int length = 0;
-    
-    
+    int ret = 0;
 
-    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
-     if(length < 0) { 
-         print_error("Public encryption failed - CRITICAL %d \n", ERROR_YAY);
+    ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
+    if(ret != 0) { 
+         print_error("Public encryption failed - CRITICAL !!!\n");
          return ERROR_RETURN;
     }
         
     preserved_len = length = send_packet(address, length, encrypt_buffer);
     if(length < 0) { 
-         print_error("Packet failed to send!\n");
+         print_error("Packet failed to send! %s \n", encrypt_buffer);
          return ERROR_RETURN;
     }
    
@@ -260,8 +258,7 @@ int init(void) {
     int ret = wc_InitRng(&AP_rng); 
     if(ret != 0) { 
          print_error("Randomizer failed to initialize - suffer \n");
-         ERROR_YAY = ret; 
-         return 0; // should be -2 but switching to 0 for testing purposes
+         return -2; 
     }
 
     // For Comp Data 

@@ -26,7 +26,7 @@
 #define KEY_SIZE 16
 
 #define HASH_SIZE SHA_DIGEST_SIZE
-
+#define RSA_KEY_LENGTH 256 // Keep track of modulus size because I am silly
 
 /******************************** FUNCTION PROTOTYPES ********************************/
 /** @brief Encrypts plaintext using a symmetric cipher

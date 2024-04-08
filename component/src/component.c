@@ -118,17 +118,16 @@ uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 int secure_send(uint8_t* buffer, uint8_t len) {
     // Use components public key to send messages yay
     // Hash the original buffer first, and append this to the message
-    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t hash_out[HASH_SIZE];
-    int preserved_len = 0;
-    int length = 0;
+    int length = RSA_KEY_LENGTH; // constant K interlinked
+    int ret = 0;
 
-    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
-     if(length < 0) { 
+    ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
+     if(ret != 0) { 
          return -1;
     }
         
-    preserved_len = length;
     send_packet_and_ack(length, encrypt_buffer); 
    
     // Send another message that digests the plaintext for message integrity
@@ -138,7 +137,7 @@ int secure_send(uint8_t* buffer, uint8_t len) {
 
     send_packet_and_ack(sizeof(hash_out), hash_out);
 
-    return preserved_len;
+    return length;
 }
 
 /**
@@ -155,7 +154,7 @@ int secure_receive(uint8_t* buffer) {
 
 // Use AP's private key to decrypt and validate the message 
     // Expect two messages.. the ciphertext and the hash
-    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN]; 
     uint8_t hash_out[HASH_SIZE];
     int preserved_len = 0;
     int len = 0;
@@ -428,6 +427,9 @@ int main(void) {
     
     // Enable Global Interrupts
     __enable_irq();
+
+    // Enable library's randomness generator
+    MXC_TRNG_Init();
 
     // Encrypt component's AT data with AP's public key
     if (init_at_pub_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB_AT, sizeof(AP_PUB_AT)) < 0
