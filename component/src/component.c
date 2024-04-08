@@ -85,6 +85,10 @@ typedef struct {
 
 // Data structure for holding the attestation data
 
+// Key to help encrypt AT data with AP's public key
+RsaKey AP_PUB_FOR_AT;
+
+RsaKey COMP_PRIV;
 
 /********************************* FUNCTION DECLARATIONS **********************************/
 // Core function definitions
@@ -109,8 +113,36 @@ uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
  * Securely send data over I2C. This function is utilized in POST_BOOT functionality.
  * This function must be implemented by your team to align with the security requirements.
 */
-void secure_send(uint8_t* buffer, uint8_t len) {
-    send_packet_and_ack(len, buffer); 
+int secure_send(uint8_t* buffer, uint8_t len) {
+    // Use components public key to send messages yay
+    // Hash the original buffer first, and append this to the message
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t hash_out[HASH_SIZE];
+    WC_RNG rng;
+    int preserved_len = 0;
+    int length = 0;
+    
+    // Initialize the Randomizer :P
+    if(wc_InitRng(&rng) < 0) { 
+         return -1;
+    }
+
+    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &rng);
+     if(length < 0) { 
+         return -1;
+    }
+        
+    preserved_len = length;
+    send_packet_and_ack(length, encrypt_buffer); 
+   
+    // Send another message that digests the plaintext for message integrity
+    if (hash(buffer, len , hash_out) != 0) {
+                return -1;
+    }
+
+    send_packet_and_ack(sizeof(hash_out), hash_out);
+
+    return preserved_len;
 }
 
 /**
@@ -124,7 +156,42 @@ void secure_send(uint8_t* buffer, uint8_t len) {
  * This function must be implemented by your team to align with the security requirements.
 */
 int secure_receive(uint8_t* buffer) {
-    return wait_and_receive_packet(buffer);
+
+// Use AP's private key to decrypt and validate the message 
+    // Expect two messages.. the ciphertext and the hash
+    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t hash_out[HASH_SIZE];
+    int preserved_len = 0;
+    int len = 0;
+
+    // The ciphertext
+    preserved_len = len = wait_and_receive_packet(buffer);
+
+    if(len > sizeof(decrypted_buffer)) {
+        return -1;
+    }
+
+    len = wc_RsaPrivateDecrypt(buffer, len ,
+                            decrypted_buffer, sizeof(decrypted_buffer), &COMP_PRIV );
+    if (len < 0) {
+        return -1;
+    }
+
+    // The hash
+    wait_and_receive_packet(buffer);
+
+    if (hash(decrypted_buffer, len, hash_out) != 0) {
+                return -1;
+    }
+
+    if (strcmp((char*)hash_out, (char*)buffer)) {
+        return -1;
+    }
+
+    bzero(decrypted_buffer, sizeof(decrypted_buffer));
+    memcpy(buffer, decrypted_buffer, len);
+
+    return preserved_len;
 }
 
 typedef struct {
@@ -149,15 +216,14 @@ nonce_t generate_nonce()
 
 // Structure to hold the encrypted data
 typedef struct {
-    uint8_t AT_ECUST[RSA_KEY_LENGTH];
-    uint8_t AT_ELOCA[RSA_KEY_LENGTH];
-    uint8_t AT_EDATE[RSA_KEY_LENGTH];
+    uint8_t AT_ECUST[MAX_I2C_MESSAGE_LEN];
+    uint8_t AT_ELOCA[MAX_I2C_MESSAGE_LEN];
+    uint8_t AT_EDATE[MAX_I2C_MESSAGE_LEN];
 } attestation_data;
 
 uint8_t AT_DATA_DIGEST[HASH_SIZE];
 
-// Key to help encrypt AT data with AP's public key
-RsaKey AP_PUB_FOR_AT;
+
 
 // Encrypted AT Data
 attestation_data encrypted_AT;
@@ -180,6 +246,27 @@ int init_at_pub_key(RsaKey* key, uint8_t* DER_Key, int len)
     return 0;
 }
 
+int init_comp_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
+{
+    int ret = 0;
+    unsigned int idx = 0;
+
+    // Initialize key structure
+    ret = wc_InitRsaKey(key, NULL);
+    if(ret < 0) { 
+        return -1;
+    }
+
+    // Use existing public key to finalize the creation of our pub
+    ret = wc_RsaPrivateKeyDecode(DER_Key, &idx, key, len);
+    if(ret < 0) { 
+        return -1;
+    }
+
+    //print_debug("Generated pub key for attestation data\n");
+
+    return 0;
+}
 
 int encrypt_AT(attestation_data* encrypted, RsaKey* key)
 {
@@ -329,8 +416,8 @@ void process_attest() {
             copied = HASH_SIZE;
             memcpy(transmit_buffer, DATA[i], HASH_SIZE);
         } else {
-            copied = RSA_KEY_LENGTH;
-            memcpy(transmit_buffer, DATA[i], RSA_KEY_LENGTH); // Fix the size here
+            copied = MAX_I2C_MESSAGE_LEN;
+            memcpy(transmit_buffer, DATA[i], MAX_I2C_MESSAGE_LEN); // Fix the size here
         }
         
         secure_send(transmit_buffer, copied);
@@ -349,6 +436,12 @@ int main(void) {
     // Encrypt component's AT data with AP's public key
     if (init_at_pub_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB_AT, sizeof(AP_PUB_AT)) < 0
     || encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT) < 0 )
+    {
+        return -1;
+    }
+    
+    // Initialize COMP public key for communication
+    if (init_comp_priv_key(&COMP_PRIV ,(uint8_t*)COMP1_PRIV, sizeof(COMP1_PRIV)) < 0)
     {
         return -1;
     }
