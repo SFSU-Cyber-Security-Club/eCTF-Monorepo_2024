@@ -171,20 +171,17 @@ export CMSIS_ROOT
 VPATH += .
 VPATH += src
 
-# eCTF Crypto Example
-ifeq ($(CRYPTO_EXAMPLE), 1)
+# Must be included for RSA encryption
 VPATH += wolfssl/wolfcrypt/src
-endif
+# Attempted to be included for ssl initialization and randomization
+# VPATH += wolfssl/src
 
 VPATH := $(VPATH)
 
 # Where to find header files for this project
 IPATH += .
 IPATH += include
-# eCTF Crypto Example
-ifeq ($(CRYPTO_EXAMPLE), 1)
 IPATH += wolfssl
-endif
 IPATH := $(IPATH)
 
 AUTOSEARCH ?= 1
@@ -251,7 +248,6 @@ MXC_OPTIMIZE_CFLAGS ?= -O2
 
 # Set compiler flags
 PROJ_CFLAGS += -Wall # Enable warnings
-ifeq ($(CRYPTO_EXAMPLE), 1)
 PROJ_CFLAGS += -DMXC_ASSERT_ENABLE
 # eCTF Crypto Example - WolfSSL Flags
 PROJ_CFLAGS += -DNO_WOLFSSL_DIR
@@ -261,7 +257,6 @@ PROJ_CFLAGS += -DCRYPTO_EXAMPLE=1
 PROJ_CFLAGS += -DHAVE_PK_CALLBACKS                                                               
 PROJ_CFLAGS += -DWOLFSSL_USER_IO                                                                 
 PROJ_CFLAGS += -DNO_WRITEV -DTIME_T_NOT_64BIT                                                    
-endif
 
 ifeq ($(POST_BOOT_ENABLED), 1)
 	PROJ_CFLAGS += -DPOST_BOOT=$(POST_BOOT_CODE)
