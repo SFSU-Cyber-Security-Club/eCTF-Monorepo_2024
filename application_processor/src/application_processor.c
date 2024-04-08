@@ -111,6 +111,7 @@ flash_entry flash_status;
 
 // Stores the private key for the AP AT Data
 RsaKey AP_AT_PRIV;
+WC_RNG AP_rng;
 
 // Stores the public key for the COMP Data and secure communication
 RsaKey COMP_PUB;
@@ -132,17 +133,12 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
     uint8_t hash_out[HASH_SIZE];
-    WC_RNG rng;
     int preserved_len = 0;
     int length = 0;
     
-    // Initialize the Randomizer :P
-    if(wc_InitRng(&rng) < 0) { 
-         print_error("Randomizer failed to initialize - suffer\n");
-         return ERROR_RETURN;
-    }
+    
 
-    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &rng);
+    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
      if(length < 0) { 
          print_error("Public encryption failed - CRITICAL\n");
          return ERROR_RETURN;
@@ -241,7 +237,7 @@ int get_provisioned_ids(uint32_t* buffer) {
 
 // Initialize the device
 // This must be called on startup to initialize the flash and i2c interfaces
-void init(void) {
+int init(void) {
 
     // Enable global interrupts    
     __enable_irq();
@@ -254,13 +250,37 @@ void init(void) {
     // For AT Data
     if( init_ap_priv_key(&AP_AT_PRIV, (uint8_t*)AP_PRIV_AT, sizeof(AP_PRIV_AT)) < 0) { 
         print_error("FAILED to initialize key for private component, CRITICAL!\n");
-        return; 
+        return -1; 
+    }
+
+    // Initialize the Randomizer for private communication :P
+    int ret;
+    if((ret = wc_InitRng(&AP_rng)) != 0) { 
+         /*switch(ret)
+         {
+                case MEMORY_E:
+                        print_error("XMALLOC failed\n");
+                case WINCRYPT_E:
+                        print_error("wc_GenerateSeed: failed to acquire context\n");
+                case CRYPTGEN_E:
+                        print_error("wc_GenerateSeed: failed to get random \n");
+                case BAD_FUNC_ARG:
+                        print_error("RNG generateblock input is null or exceeds max request len \n");
+                case DRBG_CONT_FIPS_E:
+                        print_error("error with some hash_gen \n");
+                case RNG_FAILURE_E:
+                        print_error("Rng's status originally not ok or set to something else\n");
+                default:
+                        print_error("UNKNOWN ERR, VALUE %d \n", ret);
+         }*/
+         print_error("Randomizer failed to initialize - suffer %d \n", ret);
+         return -2;
     }
 
     // For Comp Data 
     if( init_comp_pub_key(&COMP_PUB, (uint8_t*)COMP1_PUB, sizeof(COMP_PUB)) < 0) { 
         print_error("FAILED to initialize key for public component, CRITICAL!\n");
-        return; 
+        return -3; 
     }
 
 
@@ -718,7 +738,9 @@ void attempt_attest(void) {
 
 int main(void) {
     // Initialize board
-    init();
+    if (init() != 0) {
+        return 1;
+    }
 
     // Print the component IDs to be helpful
     // Your design does not need to do this

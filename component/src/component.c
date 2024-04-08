@@ -88,7 +88,9 @@ typedef struct {
 // Key to help encrypt AT data with AP's public key
 RsaKey AP_PUB_FOR_AT;
 
+// Component private key for communication
 RsaKey COMP_PRIV;
+WC_RNG COMP_rng;
 
 /********************************* FUNCTION DECLARATIONS **********************************/
 // Core function definitions
@@ -118,16 +120,10 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];; 
     uint8_t hash_out[HASH_SIZE];
-    WC_RNG rng;
     int preserved_len = 0;
     int length = 0;
-    
-    // Initialize the Randomizer :P
-    if(wc_InitRng(&rng) < 0) { 
-         return -1;
-    }
 
-    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &rng);
+    length = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
      if(length < 0) { 
          return -1;
     }
@@ -446,6 +442,10 @@ int main(void) {
         return -1;
     }
 
+    // Initialize the Randomizer :P
+    if(wc_InitRng(&COMP_rng) < 0) { 
+         return -1;
+    }
     // Seed our random number generator using build time secret
     srand((unsigned int)COMP_SEED);
 
