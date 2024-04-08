@@ -11,7 +11,6 @@
  * @copyright Copyright (c) 2024 The MITRE Corporation
  */
 
-#if CRYPTO_EXAMPLE
 #ifndef ECTF_CRYPTO_H
 #define ECTF_CRYPTO_H
 
@@ -19,6 +18,8 @@
 #include "wolfssl/wolfcrypt/hash.h"
 #include "wolfssl/wolfcrypt/rsa.h"
 #include "wolfssl/wolfcrypt/random.h"
+#include "wolfssl/wolfcrypt/settings.h" // To define our random generator...
+#include "trng.h"
 
 /******************************** MACRO DEFINITIONS ********************************/
 #define BLOCK_SIZE AES_BLOCK_SIZE
@@ -70,5 +71,9 @@ int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintex
  */
 int hash(void *data, size_t len, uint8_t *hash_out);
 
-#endif // CRYPTO_EXAMPLE
+// This initializes wolfssl's random generator to allow us to generate secure randomness
+// wolfssl.com/forums/topic879-solved-using-rsa-undefined-reference-to-wcgenerateseed-error.html
+
+int rand_gen_seed(uint8_t* output, int sz);
+
 #endif // ECTF_CRYPTO_H

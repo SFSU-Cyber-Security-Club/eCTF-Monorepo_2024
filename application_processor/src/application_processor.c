@@ -18,6 +18,7 @@
 #include "mxc_delay.h"
 #include "mxc_device.h"
 #include "nvic_table.h"
+// #include "trng.h" // True randomness generator
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -28,7 +29,6 @@
 #include "simple_flash.h"
 #include "host_messaging.h"
 #include "simple_crypto.h"
-// #include "wolfssl/ssl.h"
 
 #ifdef POST_BOOT
 #include "mxc_delay.h"
@@ -111,6 +111,7 @@ flash_entry flash_status;
 // Stores the private key for the AP AT Data
 RsaKey AP_AT_PRIV;
 WC_RNG AP_rng;
+
 int ERROR_YAY; // TESTING PURPOSES REMOVE AFTER
 // Stores the public key for the COMP Data and secure communication
 RsaKey COMP_PUB;
@@ -241,10 +242,8 @@ int init(void) {
     // Enable global interrupts    
     __enable_irq();
 
-    // This initializes wolfssl to allow us to generate secure randomness
-    /*if(wolfSSL_Init() != SSL_SUCCESS) {
-        return -999;
-    }*/
+    // Initializes true randomness to enable the random generator for RSA encryption
+    MXC_TRNG_Init();
 
     // Seed our random number generator using build time secret
     srand((unsigned int)AP_SEED);
