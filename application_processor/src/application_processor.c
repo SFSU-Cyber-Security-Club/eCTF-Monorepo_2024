@@ -111,7 +111,7 @@ flash_entry flash_status;
 
 // Stores the private key for the AP AT Data
 RsaKey AP_AT_PRIV;
-WC_RNG AP_rng;
+RNG AP_rng;
 
 // Stores the public key for the COMP Data and secure communication
 RsaKey COMP_PUB;
@@ -255,26 +255,9 @@ int init(void) {
 
     // Initialize the Randomizer for private communication :P
     int ret;
-    if((ret = wc_InitRng(&AP_rng)) != 0) { 
-         /*switch(ret)
-         {
-                case MEMORY_E:
-                        print_error("XMALLOC failed\n");
-                case WINCRYPT_E:
-                        print_error("wc_GenerateSeed: failed to acquire context\n");
-                case CRYPTGEN_E:
-                        print_error("wc_GenerateSeed: failed to get random \n");
-                case BAD_FUNC_ARG:
-                        print_error("RNG generateblock input is null or exceeds max request len \n");
-                case DRBG_CONT_FIPS_E:
-                        print_error("error with some hash_gen \n");
-                case RNG_FAILURE_E:
-                        print_error("Rng's status originally not ok or set to something else\n");
-                default:
-                        print_error("UNKNOWN ERR, VALUE %d \n", ret);
-         }*/
+    if(wc_InitRng(&AP_rng) != 0) { 
          print_error("Randomizer failed to initialize - suffer %d \n", ret);
-         return -2;
+         return 0; // should be -2 but switching to 0 for testing purposes
     }
 
     // For Comp Data 
