@@ -209,9 +209,9 @@ nonce_t generate_nonce()
 
 // Structure to hold the encrypted data
 typedef struct {
-    uint8_t AT_ECUST[MAX_I2C_MESSAGE_LEN-1];
-    uint8_t AT_ELOCA[MAX_I2C_MESSAGE_LEN-1];
-    uint8_t AT_EDATE[MAX_I2C_MESSAGE_LEN-1];
+    uint8_t AT_ECUST[RSA_KEY_LENGTH];
+    uint8_t AT_ELOCA[RSA_KEY_LENGTH];
+    uint8_t AT_EDATE[RSA_KEY_LENGTH];
 } attestation_data;
 
 uint8_t AT_DATA_DIGEST[HASH_SIZE];
@@ -261,39 +261,35 @@ int init_comp_priv_key(RsaKey* key, uint8_t* DER_Key, int len)
     return 0;
 }
 
-int encrypt_AT(attestation_data* encrypted, RsaKey* key)
+int encrypt_AT()
 {
+    int P_SIZE[] = {sizeof(ATTESTATION_LOC), sizeof(ATTESTATION_DATE), sizeof(ATTESTATION_CUSTOMER)};
+    uint8_t* P_DATA[] = {(uint8_t*)ATTESTATION_LOC, (uint8_t*)ATTESTATION_DATE, (uint8_t*)ATTESTATION_CUSTOMER};
+    uint8_t* E_DATA[] = {&encrypted_AT.AT_ELOCA, &encrypted_AT.AT_EDATE, &encrypted_AT.AT_ECUST};
+    int total_size = P_SIZE[0] + P_SIZE[1] + P_SIZE[2];
     int ret = 0;
+    int i = 0;
     WC_RNG rng;
-    
+
     // If any of the attestation data's sizes are greater than the key length than
     // we must fail the encryption and quit
-    if(sizeof(ATTESTATION_LOC) > RSA_KEY_LENGTH ||
-       sizeof(ATTESTATION_DATE) > RSA_KEY_LENGTH ||
-       sizeof(ATTESTATION_CUSTOMER) > RSA_KEY_LENGTH) {
+    if(P_SIZE[0]  > RSA_KEY_LENGTH ||
+       P_SIZE[1]  > RSA_KEY_LENGTH ||
+       P_SIZE[2]  > RSA_KEY_LENGTH) {
         return -1;
     }
+    // hash and store the hash value result in the digest global variable
+    hash(P_DATA, total_size, AT_DATA_DIGEST);
 
-
+    // Initialize the randomizer
     ret = wc_InitRng(&rng);
     if(ret < 0) { return -1;}
-   
-    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_LOC, 
-                            sizeof(ATTESTATION_LOC), 
-                            encrypted->AT_ELOCA, sizeof(encrypted->AT_ELOCA), key, &rng);
-
-    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_DATE, 
-                            sizeof(ATTESTATION_DATE), 
-                            encrypted->AT_EDATE, sizeof(encrypted->AT_EDATE), key, &rng);
-
-    ret = wc_RsaPublicEncrypt((uint8_t*)ATTESTATION_CUSTOMER, 
-                            sizeof(ATTESTATION_CUSTOMER), 
-                            encrypted->AT_ECUST, sizeof(encrypted->AT_ECUST), key, &rng);
-
-    if(ret < 0) { return -1;}
-    // hash and store the hash value result in the digest global var
-    hash(&encrypted, sizeof(attestation_data), AT_DATA_DIGEST);
-
+    
+    for (;i < 3;i++) { 
+         ret = wc_RsaPublicEncrypt(P_DATA[i], P_SIZE[i], E_DATA[i], RSA_KEY_LENGTH,&AP_PUB_FOR_AT, &rng);
+         if(ret < 0) { return -1;}
+    }
+    
     return 0;
 }
 
@@ -440,7 +436,7 @@ int main(void) {
 
     // Encrypt component's AT data with AP's public key
     if (init_at_pub_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB_AT, sizeof(AP_PUB_AT)) < 0
-    || encrypt_AT(&encrypted_AT, &AP_PUB_FOR_AT) < 0 )
+    || encrypt_AT() < 0 )
     {
         return -1;
     }
