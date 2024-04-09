@@ -130,9 +130,8 @@ RsaKey COMP_PUB;
 int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     // Use components public key to send messages yay
     // Hash the original buffer first, and append this to the message
-    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN]; // regardless of input, rsa ciphertext will be equal to the modulus
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1]; // regardless of input, rsa ciphertext will be equal to the modulus
     uint8_t hash_out[HASH_SIZE];
-    int length = RSA_KEY_LENGTH; // Encrypted messages will be a constant length.. /|
     int preserved_len = 0;
     int ret = 0;
 
@@ -141,10 +140,11 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
          print_error("Public encryption failed - CRITICAL string is: %s and return is :%d and len is :%d!!!\n", buffer, ret, len);
          return ERROR_RETURN;
     }
-        
-    preserved_len = length = send_packet(address, length, encrypt_buffer);
-    if(length < 0) { 
-         print_error("Packet failed to send! %s \n", encrypt_buffer);
+    
+    // Naturally, our function fails if the length exceeds the size of the i2c message bus which is 255
+    preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer);
+    if(preserved_len < 0) { 
+         print_error("Packet failed to send! %d \n", preserved_len);
          return ERROR_RETURN;
     }
    
@@ -153,8 +153,8 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
 		print_error("Error: hash\n");
     }
 
-    length = send_packet(address, sizeof(hash_out), hash_out);
-    if(length < 0) { 
+    ret = send_packet(address, (uint8_t)sizeof(hash_out), hash_out);
+    if(ret < 0) { 
          print_error("Hash packet failed to send\n");
          return ERROR_RETURN;
     }
@@ -176,7 +176,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
 int secure_receive(i2c_addr_t address, uint8_t* buffer) {
     // Use AP's private key to decrypt and validate the message 
     // Expect two messages.. the ciphertext and the hash
-    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN];; 
+    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN-1];; 
     uint8_t hash_out[HASH_SIZE];
     int preserved_len = 0;
     int len = 0;
@@ -193,7 +193,7 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
     len = wc_RsaPrivateDecrypt(buffer, len ,
                             decrypted_buffer, sizeof(decrypted_buffer), &AP_AT_PRIV );
     if (len < 0) {
-        print_error("Decryption ERROR - Critical\n");
+        print_error("Decryption ERROR - Critical - %d \n", len);
         return ERROR_RETURN;
     }
 

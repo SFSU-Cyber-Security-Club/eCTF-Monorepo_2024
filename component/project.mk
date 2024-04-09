@@ -27,16 +27,6 @@ LINKERFILE=firmware.ld
 STARTUPFILE=startup_firmware.S
 ENTRY=firmware_startup
 
-# ****************** eCTF Crypto Example *******************
-# Uncomment the commented lines below and comment the disable
-# lines to enable the eCTF Crypto Example.
 # WolfSSL must be included in this directory as wolfssl/
 # WolfSSL can be downloaded from: https://www.wolfssl.com/download/
-# There is no additional functionality as in the application_processor
-# but this will set up compilation and linking for WolfSSL
 
-# Disable Crypto Example
-#CRYPTO_EXAMPLE=0
-
-# Enable Crypto Example
-CRYPTO_EXAMPLE=1

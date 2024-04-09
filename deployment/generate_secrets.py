@@ -8,6 +8,7 @@ import os
 
 PIN_KEY_LENGTH = 12
 TOKEN_KEY_LENGTH = 15
+RSA_KEY_LENGTH = 1024 # Will convert to bytes
 
 def generate_sequence(is_pin):
         sequence_length = PIN_KEY_LENGTH if is_pin else TOKEN_KEY_LENGTH
@@ -70,7 +71,7 @@ def generate_comp_seed():
 def generate_ap_key_pair():
       private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=2048
+                        key_size=RSA_KEY_LENGTH
                     )
       der_private_key = private_key.private_bytes(
                         encoding=serialization.Encoding.DER,
@@ -103,7 +104,7 @@ def generate_comp_key_pair(n):
       for i in range(0, int(n)): # In case we ever wanted multiple keys because we're fancy
                 private_key = rsa.generate_private_key(
                         public_exponent=65537,
-                        key_size=2048
+                        key_size=RSA_KEY_LENGTH
                 )
                 
                 der_private_key = private_key.private_bytes(
@@ -134,6 +135,10 @@ def generate_comp_key_pair(n):
 
       f.close() 
 
+def generate_key_length():
+        f = open("global_secrets.h", 'a')
+        f.write("#define RSA_KEY_LENGTH " + str(int(RSA_KEY_LENGTH/8)) + "\n")  
+        f.close()
 
 def main():
     # 0 - Token 
@@ -151,6 +156,7 @@ def main():
     # This gets ugly 
     generate_ap_key_pair() # FOR AT ENCRYPTION
     generate_comp_key_pair(1) # Just use one key pair for all components, ez
+    generate_key_length() # Note the key size we chose
 
 if __name__ == "__main__":
     main()

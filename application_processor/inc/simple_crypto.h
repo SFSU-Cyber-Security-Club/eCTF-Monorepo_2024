@@ -24,9 +24,7 @@
 /******************************** MACRO DEFINITIONS ********************************/
 #define BLOCK_SIZE AES_BLOCK_SIZE
 #define KEY_SIZE 16
-
 #define HASH_SIZE SHA_DIGEST_SIZE
-#define RSA_KEY_LENGTH 256 // Keep track of modulus size because I am silly
 
 /******************************** FUNCTION PROTOTYPES ********************************/
 /** @brief Encrypts plaintext using a symmetric cipher
@@ -73,7 +71,6 @@ int hash(void *data, size_t len, uint8_t *hash_out);
 
 // This initializes wolfssl's random generator to allow us to generate secure randomness
 // wolfssl.com/forums/topic879-solved-using-rsa-undefined-reference-to-wcgenerateseed-error.html
-
-int rand_gen_seed(uint8_t* output, int sz);
+// int rand_gen_seed(uint8_t* output, int sz); already defined in user_settings.h
 
 #endif // ECTF_CRYPTO_H

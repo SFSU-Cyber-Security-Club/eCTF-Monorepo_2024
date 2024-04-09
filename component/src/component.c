@@ -26,9 +26,7 @@
 #include "simple_i2c_peripheral.h"
 #include "board_link.h"
 
-#ifdef CRYPTO_EXAMPLE
 #include "simple_crypto.h"
-#endif
 
 // Includes from containerized build
 #include "ectf_params.h"
@@ -118,17 +116,18 @@ uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 int secure_send(uint8_t* buffer, uint8_t len) {
     // Use components public key to send messages yay
     // Hash the original buffer first, and append this to the message
-    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN];
+    uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1];
     uint8_t hash_out[HASH_SIZE];
-    int length = RSA_KEY_LENGTH; // constant K interlinked
+    // constant K interlinked
     int ret = 0;
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
-     if(ret != 0) { 
+    if(ret < 0) { 
          return -1;
     }
-        
-    send_packet_and_ack(length, encrypt_buffer); 
+    
+    // Returns length encrypted so this should work
+    send_packet_and_ack(ret, encrypt_buffer); 
    
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
@@ -137,7 +136,7 @@ int secure_send(uint8_t* buffer, uint8_t len) {
 
     send_packet_and_ack(sizeof(hash_out), hash_out);
 
-    return length;
+    return ret;
 }
 
 /**
@@ -151,10 +150,9 @@ int secure_send(uint8_t* buffer, uint8_t len) {
  * This function must be implemented by your team to align with the security requirements.
 */
 int secure_receive(uint8_t* buffer) {
-
-// Use AP's private key to decrypt and validate the message 
+    // Use AP's private key to decrypt and validate the message 
     // Expect two messages.. the ciphertext and the hash
-    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN]; 
+    uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN-1]; 
     uint8_t hash_out[HASH_SIZE];
     int preserved_len = 0;
     int len = 0;
@@ -180,7 +178,7 @@ int secure_receive(uint8_t* buffer) {
     }
 
     if (strcmp((char*)hash_out, (char*)buffer)) {
-        return -1;
+                return -1;
     }
 
     bzero(decrypted_buffer, sizeof(decrypted_buffer));
@@ -211,9 +209,9 @@ nonce_t generate_nonce()
 
 // Structure to hold the encrypted data
 typedef struct {
-    uint8_t AT_ECUST[MAX_I2C_MESSAGE_LEN];
-    uint8_t AT_ELOCA[MAX_I2C_MESSAGE_LEN];
-    uint8_t AT_EDATE[MAX_I2C_MESSAGE_LEN];
+    uint8_t AT_ECUST[MAX_I2C_MESSAGE_LEN-1];
+    uint8_t AT_ELOCA[MAX_I2C_MESSAGE_LEN-1];
+    uint8_t AT_EDATE[MAX_I2C_MESSAGE_LEN-1];
 } attestation_data;
 
 uint8_t AT_DATA_DIGEST[HASH_SIZE];
@@ -267,6 +265,15 @@ int encrypt_AT(attestation_data* encrypted, RsaKey* key)
 {
     int ret = 0;
     WC_RNG rng;
+    
+    // If any of the attestation data's sizes are greater than the key length than
+    // we must fail the encryption and quit
+    if(sizeof(ATTESTATION_LOC) > RSA_KEY_LENGTH ||
+       sizeof(ATTESTATION_DATE) > RSA_KEY_LENGTH ||
+       sizeof(ATTESTATION_CUSTOMER) > RSA_KEY_LENGTH) {
+        return -1;
+    }
+
 
     ret = wc_InitRng(&rng);
     if(ret < 0) { return -1;}
