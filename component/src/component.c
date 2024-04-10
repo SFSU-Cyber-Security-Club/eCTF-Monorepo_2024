@@ -118,11 +118,13 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1];
     uint8_t hash_out[HASH_SIZE];
+    
     // constant K interlinked
     int ret = 0;
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
-    if(ret < 0) { 
+    if(ret < 0) {
+         
          return -1;
     }
     
@@ -161,12 +163,14 @@ int secure_receive(uint8_t* buffer) {
     preserved_len = len = wait_and_receive_packet(buffer);
 
     if(len > sizeof(decrypted_buffer)) {
+        LED_On(LED3);
         return -1;
     }
 
     len = wc_RsaPrivateDecrypt(buffer, len ,
                             decrypted_buffer, sizeof(decrypted_buffer), &COMP_PRIV );
     if (len < 0) {
+        LED_Off(LED2);
         return -1;
     }
 
@@ -174,10 +178,12 @@ int secure_receive(uint8_t* buffer) {
     wait_and_receive_packet(buffer);
 
     if (hash(decrypted_buffer, len, hash_out) != 0) {
+                LED_On(LED1);
                 return -1;
     }
 
     if (strcmp((char*)hash_out, (char*)buffer)) {
+                LED_On(LED1);
                 return -1;
     }
 
@@ -456,7 +462,10 @@ int main(void) {
 
     // Initialize Component
     i2c_addr_t addr = component_id_to_i2c_addr(COMPONENT_ID);
-    board_link_init(addr);
+    if (board_link_init(addr) != E_NO_ERROR)
+    {
+         return -1;
+    }
     
     LED_On(LED2);
 

@@ -144,7 +144,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     // Naturally, our function fails if the length exceeds the size of the i2c message bus which is 255
     preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer);
     if(preserved_len < 0) { 
-         print_error("Packet failed to send! %d \n", preserved_len);
+         // print_error("Packet failed to send! %d \n", preserved_len); Don't print this out, messes with list output
          return ERROR_RETURN;
     }
    
@@ -406,13 +406,17 @@ int scan_components(void) {
         command->opcode = COMPONENT_CMD_SCAN;
         
         // Send out command and receive result
-        int len = issue_cmd(addr, transmit_buffer, receive_buffer);
-
-        // Success, device is present
-        if (len > 0) {
-            scan_message* scan = (scan_message*) receive_buffer;
-            print_info("F>0x%08x\n", scan->component_id);
+        if(secure_send(addr, (command_message*)command, sizeof(uint8_t)) == ERROR_RETURN) {
+                continue;
         }
+
+        if(secure_receive(addr, receive_buffer) == ERROR_RETURN) {
+                continue;
+        }
+        
+        // Success, device is present
+        scan_message* scan = (scan_message*) receive_buffer;
+        print_info("F>0x%08x\n", scan->component_id);
     }
     print_success("List\n");
     return SUCCESS_RETURN;
