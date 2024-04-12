@@ -134,6 +134,8 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     int preserved_len = 0;
     int ret = 0;
 
+    return send_packet(address, len, buffer);
+
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
     if(ret < 0) { 
          print_error("Public encryption failed - CRITICAL string is: %s and return is :%d and len is :%d!!!\n", buffer, ret, len);
@@ -141,15 +143,12 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     }
     
     // Naturally, our function fails if the length exceeds the size of the i2c message bus which is 255
-    preserved_len = send_packet(address, 2, encrypt_buffer); // CHANGED LENGTH TEMPORARY PLEASE REVERT BACK
+    preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer); // CHANGED LENGTH TEMPORARY PLEASE REVERT BACK
     if(preserved_len < 0) { 
          // print_error("Packet failed to send! %d \n", preserved_len); Don't print this out, messes with list output
          return ERROR_RETURN;
     }
 
-    // Temporary adjustment
-    return preserved_len;
-   
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
 		print_error("Error: hash\n");
@@ -183,6 +182,8 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
     int preserved_len = 0;
     int len = 0;
 
+
+    return poll_and_receive_packet(address, buffer);
     // The ciphertext
     preserved_len = len = poll_and_receive_packet(address, buffer);
 

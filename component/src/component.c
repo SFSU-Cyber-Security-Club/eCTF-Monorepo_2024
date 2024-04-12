@@ -118,7 +118,9 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1];
     uint8_t hash_out[HASH_SIZE];
-    
+   
+    return secure_send(buffer, len);
+
     // constant K interlinked
     int ret = 0;
 
@@ -131,8 +133,6 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     // Returns length encrypted so this should work
     send_packet_and_ack(ret, encrypt_buffer); 
    
-    return ret; // Temporary
-
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
                 return -1;
@@ -161,6 +161,8 @@ int secure_receive(uint8_t* buffer) {
     int preserved_len = 0;
     int len = 0;
 
+    return wait_and_receive_packet(buffer);
+
     // The ciphertext
     preserved_len = len = wait_and_receive_packet(buffer);
 
@@ -175,11 +177,6 @@ int secure_receive(uint8_t* buffer) {
         LED_Off(LED2);
         return -1;
     }
-    
-    bzero(buffer, preserved_len);
-    memcpy(buffer, decrypted_buffer, len);
-    return len;
-
 
     // The hash
     wait_and_receive_packet(buffer);
@@ -194,10 +191,10 @@ int secure_receive(uint8_t* buffer) {
                 return -1;
     }
 
-    bzero(decrypted_buffer, sizeof(decrypted_buffer));
+    bzero(buffer, preserved_len);
     memcpy(buffer, decrypted_buffer, len);
-
-    return preserved_len;
+    
+    return len;
 }
 
 typedef struct {
