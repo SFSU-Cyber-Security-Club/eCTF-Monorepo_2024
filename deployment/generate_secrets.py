@@ -8,7 +8,7 @@ import os
 
 PIN_KEY_LENGTH = 12
 TOKEN_KEY_LENGTH = 15
-RSA_KEY_LENGTH = 1024 # Will convert to bytes
+RSA_KEY_LENGTH = 512 # Will convert to bytes
 
 def generate_sequence(is_pin):
         sequence_length = PIN_KEY_LENGTH if is_pin else TOKEN_KEY_LENGTH

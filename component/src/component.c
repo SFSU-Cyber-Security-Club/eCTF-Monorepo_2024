@@ -119,7 +119,7 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1];
     uint8_t hash_out[HASH_SIZE];
     // constant K interlinked
-    int ret = 0;
+    volatile int ret = 0;
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
     if(ret < 0) {
@@ -137,6 +137,7 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     }
 
     send_packet_and_ack(sizeof(hash_out), hash_out);
+
 skip:
 
     return ret;
@@ -157,8 +158,8 @@ int secure_receive(uint8_t* buffer) {
     // Expect two messages.. the ciphertext and the hash
     uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN-1]; 
     uint8_t hash_out[HASH_SIZE];
-    int preserved_len = 0;
-    int len = 0;
+    volatile int preserved_len = 0;
+    volatile int len = 0;
 
     // The ciphertext
     preserved_len = len = wait_and_receive_packet(buffer);
@@ -284,6 +285,7 @@ int encrypt_AT()
     if(P_SIZE[0]  > RSA_KEY_LENGTH ||
        P_SIZE[1]  > RSA_KEY_LENGTH ||
        P_SIZE[2]  > RSA_KEY_LENGTH) {
+        printf("Failed to encrypt attestation data due to rsa length, bye bye");
         return -1;
     }
     // hash and store the hash value result in the digest global variable
@@ -386,7 +388,7 @@ void process_boot(nonce_t expected_nonce2, command_message* command) {
 void process_scan() {
     // The AP requested a scan. Respond with the Component ID
     nonce_t nonce1;
-    command_message* cmd = (command_message*) transmit_buffer;
+    command_message* cmd = (command_message*) receive_buffer;
     memcpy(&nonce1, cmd->params, sizeof(nonce1));
 
     validate_message* packet = (validate_message*) transmit_buffer;
