@@ -723,6 +723,7 @@ int main(void) {
     // Your design does not need to do this
     print_info("Application Processor Started\n");
 
+    LED_On(LED1); // Checkpoint
     // Handle commands forever
     char buf[CMD_BUFSIZE];
     while (1) {
