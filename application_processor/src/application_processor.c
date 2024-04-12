@@ -416,20 +416,25 @@ int scan_components(void) {
         if(secure_send(addr, (uint8_t*)command, sizeof(uint8_t)) == ERROR_RETURN) {
                 continue;
         }
+         
+        print_debug("We have successfully send a message!\n");
 
         if(secure_receive(addr, receive_buffer) == ERROR_RETURN) {
                 continue;
         }
-        
+  
+        print_debug("Received! bingo bango %s \n", receive_buffer);
         // Success, device is present
         scan_message* scan = (scan_message*) receive_buffer;
         print_info("F>0x%08x\n", scan->component_id);
 
-        count--; 
+        if(scan->component_id == flash_status.component_ids[i]) {
+                count--; 
+        }
     }
 
     if(count != 0){
-       print_error("List\n");
+       print_error("List failed\n");
        return ERROR_RETURN;
     }
 
