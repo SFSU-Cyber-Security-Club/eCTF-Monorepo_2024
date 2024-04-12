@@ -147,6 +147,9 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
          // print_error("Packet failed to send! %d \n", preserved_len); Don't print this out, messes with list output
          return ERROR_RETURN;
     }
+
+    // Temporary adjustment
+    return preserved_len;
    
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
@@ -196,6 +199,11 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
         print_error("Decryption ERROR - Critical - %d \n", len);
         return ERROR_RETURN;
     }
+   
+    bzero(buffer, preserved_len);
+    memcpy(buffer, decrypted_buffer, len);
+
+    return len;
 
     // The hash
     poll_and_receive_packet(address, buffer);
@@ -385,28 +393,27 @@ int issue_cmd(i2c_addr_t addr, uint8_t* transmit, uint8_t* receive) {
 
 int scan_components(void) {
     // Print out provisioned component IDs
-    for (unsigned i = 0; i < flash_status.component_cnt; i++) {
-        print_info("P>0x%08x\n", flash_status.component_ids[i]);
-    }
-
+    int count = flash_status.component_cnt;
+  
     // Buffers for board link communication
     uint8_t receive_buffer[MAX_I2C_MESSAGE_LEN];
     uint8_t transmit_buffer[MAX_I2C_MESSAGE_LEN];
 
-    // Scan scan command to each component 
-    for (i2c_addr_t addr = 0x8; addr < 0x78; addr++) {
-        // I2C Blacklist:
-        // 0x18, 0x28, and 0x36 conflict with separate devices on MAX78000FTHR
+
+    for (unsigned i = 0; i < flash_status.component_cnt; i++) {
+        print_info("P>0x%08x\n", flash_status.component_ids[i]);
+
+        i2c_addr_t addr = component_id_to_i2c_addr(flash_status.component_ids[i]);
+        
         if (addr == 0x18 || addr == 0x28 || addr == 0x36) {
             continue;
         }
-
-        // Create command message 
+        
         command_message* command = (command_message*) transmit_buffer;
         command->opcode = COMPONENT_CMD_SCAN;
         
         // Send out command and receive result
-        if(secure_send(addr, (command_message*)command, sizeof(uint8_t)) == ERROR_RETURN) {
+        if(secure_send(addr, (uint8_t*)command, sizeof(uint8_t)) == ERROR_RETURN) {
                 continue;
         }
 
@@ -417,9 +424,18 @@ int scan_components(void) {
         // Success, device is present
         scan_message* scan = (scan_message*) receive_buffer;
         print_info("F>0x%08x\n", scan->component_id);
+
+        count--; 
     }
+
+    if(count != 0){
+       print_error("List\n");
+       return ERROR_RETURN;
+    }
+
     print_success("List\n");
     return SUCCESS_RETURN;
+  
 }
 
 

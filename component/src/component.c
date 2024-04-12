@@ -127,10 +127,12 @@ int secure_send(uint8_t* buffer, uint8_t len) {
          
          return -1;
     }
-    
+     
     // Returns length encrypted so this should work
     send_packet_and_ack(ret, encrypt_buffer); 
    
+    return ret; // Temporary
+
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
                 return -1;
@@ -163,7 +165,7 @@ int secure_receive(uint8_t* buffer) {
     preserved_len = len = wait_and_receive_packet(buffer);
 
     if(len > sizeof(decrypted_buffer)) {
-        LED_On(LED3);
+        LED_Off(LED2);
         return -1;
     }
 
@@ -173,6 +175,11 @@ int secure_receive(uint8_t* buffer) {
         LED_Off(LED2);
         return -1;
     }
+    
+    bzero(buffer, preserved_len);
+    memcpy(buffer, decrypted_buffer, len);
+    return len;
+
 
     // The hash
     wait_and_receive_packet(buffer);
@@ -271,7 +278,7 @@ int encrypt_AT()
 {
     int P_SIZE[] = {sizeof(ATTESTATION_LOC), sizeof(ATTESTATION_DATE), sizeof(ATTESTATION_CUSTOMER)};
     uint8_t* P_DATA[] = {(uint8_t*)ATTESTATION_LOC, (uint8_t*)ATTESTATION_DATE, (uint8_t*)ATTESTATION_CUSTOMER};
-    uint8_t* E_DATA[] = {&encrypted_AT.AT_ELOCA, &encrypted_AT.AT_EDATE, &encrypted_AT.AT_ECUST};
+    uint8_t* E_DATA[] = {encrypted_AT.AT_ELOCA, encrypted_AT.AT_EDATE, encrypted_AT.AT_ECUST};
     int total_size = P_SIZE[0] + P_SIZE[1] + P_SIZE[2];
     int ret = 0;
     int i = 0;
