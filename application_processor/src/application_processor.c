@@ -111,7 +111,6 @@ flash_entry flash_status;
 RsaKey AP_AT_PRIV;
 WC_RNG AP_rng;
 
-int ERROR_YAY; // TESTING PURPOSES REMOVE AFTER
 // Stores the public key for the COMP Data and secure communication
 RsaKey COMP_PUB;
 
@@ -142,7 +141,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     }
     
     // Naturally, our function fails if the length exceeds the size of the i2c message bus which is 255
-    preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer);
+    preserved_len = send_packet(address, 2, encrypt_buffer); // CHANGED LENGTH TEMPORARY PLEASE REVERT BACK
     if(preserved_len < 0) { 
          // print_error("Packet failed to send! %d \n", preserved_len); Don't print this out, messes with list output
          return ERROR_RETURN;
