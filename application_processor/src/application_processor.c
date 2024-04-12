@@ -134,6 +134,12 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     int preserved_len = 0;
     int ret = 0;
 
+    if(len > RSA_KEY_LENGTH)
+    {
+         print_error("Encryption key is too small for payload, CRITICAL FAIL\n");
+         return ERROR_RETURN;
+    }
+
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
     if(ret < 0) { 
          print_error("Public encryption failed - CRITICAL string is: %s and return is :%d and len is :%d!!!\n", buffer, ret, len);
@@ -147,7 +153,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
          return ERROR_RETURN;
     }
     
-    return preserved_len;
+    goto skip;
     // Send out an acknowledge check here
     
     // Send another message that digests the plaintext for message integrity
@@ -161,6 +167,7 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
          return ERROR_RETURN;
     }
 
+skip:
     return preserved_len;
 }
 
@@ -199,11 +206,8 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
         return ERROR_RETURN;
     }
    
-    bzero(buffer, preserved_len);
-    memcpy(buffer, decrypted_buffer, len);
-
-    return len;
-
+    goto skip;
+ 
     // The hash
     poll_and_receive_packet(address, buffer);
 
@@ -216,10 +220,12 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
         return ERROR_RETURN;
     }
 
-    bzero(decrypted_buffer, sizeof(decrypted_buffer));
+skip:
+
+    bzero(buffer, preserved_len);
     memcpy(buffer, decrypted_buffer, len);
 
-    return preserved_len;
+    return len;
 }
 
 /**
@@ -407,24 +413,34 @@ int scan_components(void) {
         if (addr == 0x18 || addr == 0x28 || addr == 0x36) {
             continue;
         }
-        
+
+        // Generate nonce1 for validating component
+        const nonce_t nonce1 = generate_nonce();
+
+        // Create command message
         command_message* command = (command_message*) transmit_buffer;
         command->opcode = COMPONENT_CMD_SCAN;
-        
-        // Send out command and receive result
-        if(secure_send(addr, (uint8_t*)command, sizeof(uint8_t)) == ERROR_RETURN) {
-                continue;
-        }
-         
-        if(secure_receive(addr, receive_buffer) == ERROR_RETURN) {
-                continue;
-        }
-  
-        // Success, device is present
-        scan_message* scan = (scan_message*) receive_buffer;
-        print_info("F>0x%08x\n", scan->component_id);
+        memcpy(command->params, &nonce1, sizeof(nonce_t)); // Request the component to send this nonce1 back
 
-        if(scan->component_id == flash_status.component_ids[i]) {
+        // Send out command and receive result
+        int len = issue_cmd(addr, transmit_buffer, receive_buffer);
+        if (len == ERROR_RETURN) {
+            print_error("command failed\n");
+            continue;
+        }
+
+        validate_message* validate = (validate_message*) receive_buffer;
+
+        // Remake validate_message structure
+        if (validate->nonce1 != nonce1) {
+            print_error("nonce1 value: %u invalid\n", validate->nonce1);
+            continue;
+        }
+          
+        // Success, device is present
+        print_info("F>0x%08x\n", validate->component_id);
+
+        if(validate->component_id == flash_status.component_ids[i]) {
                 count--; 
         }
     }

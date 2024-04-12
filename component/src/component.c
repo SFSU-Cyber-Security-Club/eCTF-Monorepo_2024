@@ -123,20 +123,21 @@ int secure_send(uint8_t* buffer, uint8_t len) {
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
     if(ret < 0) {
-         send_packet_and_ack(sizeof("FAILURE"), "FAILURE"); 
          return -1;
     }
      
     // Returns length encrypted so this should work
     send_packet_and_ack(ret, encrypt_buffer); 
-    return ret;
+    
+    goto skip;
 
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
-                return -1;
+         return -1;
     }
 
     send_packet_and_ack(sizeof(hash_out), hash_out);
+skip:
 
     return ret;
 }
@@ -384,9 +385,14 @@ void process_boot(nonce_t expected_nonce2, command_message* command) {
 
 void process_scan() {
     // The AP requested a scan. Respond with the Component ID
-    scan_message* packet = (scan_message*) transmit_buffer;
+    nonce_t nonce1;
+    command_message* cmd = (command_message*) transmit_buffer;
+    memcpy(&nonce1, cmd->params, sizeof(nonce1));
+
+    validate_message* packet = (validate_message*) transmit_buffer;
     packet->component_id = COMPONENT_ID;
-    secure_send(transmit_buffer, sizeof(scan_message));
+    packet->nonce1 = nonce1;
+    secure_send(transmit_buffer, sizeof(validate_message));
 }
 
 void process_validate(nonce_t nonce2, command_message* command) {
