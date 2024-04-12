@@ -118,21 +118,19 @@ int secure_send(uint8_t* buffer, uint8_t len) {
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1];
     uint8_t hash_out[HASH_SIZE];
-   
-    return secure_send(buffer, len);
-
     // constant K interlinked
     int ret = 0;
 
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &AP_PUB_FOR_AT, &COMP_rng);
     if(ret < 0) {
-         
+         send_packet_and_ack(sizeof("FAILURE"), "FAILURE"); 
          return -1;
     }
      
     // Returns length encrypted so this should work
     send_packet_and_ack(ret, encrypt_buffer); 
-   
+    return ret;
+
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
                 return -1;
@@ -161,22 +159,22 @@ int secure_receive(uint8_t* buffer) {
     int preserved_len = 0;
     int len = 0;
 
-    return wait_and_receive_packet(buffer);
-
     // The ciphertext
     preserved_len = len = wait_and_receive_packet(buffer);
 
     if(len > sizeof(decrypted_buffer)) {
-        LED_Off(LED2);
+        LED_On(LED1);
         return -1;
     }
 
     len = wc_RsaPrivateDecrypt(buffer, len ,
                             decrypted_buffer, sizeof(decrypted_buffer), &COMP_PRIV );
     if (len < 0) {
-        LED_Off(LED2);
+        LED_On(LED1);
         return -1;
     }
+
+    goto skip;
 
     // The hash
     wait_and_receive_packet(buffer);
@@ -190,7 +188,7 @@ int secure_receive(uint8_t* buffer) {
                 LED_On(LED1);
                 return -1;
     }
-
+skip:
     bzero(buffer, preserved_len);
     memcpy(buffer, decrypted_buffer, len);
     
@@ -279,7 +277,6 @@ int encrypt_AT()
     int total_size = P_SIZE[0] + P_SIZE[1] + P_SIZE[2];
     int ret = 0;
     int i = 0;
-    WC_RNG rng;
 
     // If any of the attestation data's sizes are greater than the key length than
     // we must fail the encryption and quit
@@ -290,13 +287,9 @@ int encrypt_AT()
     }
     // hash and store the hash value result in the digest global variable
     hash(P_DATA, total_size, AT_DATA_DIGEST);
-
-    // Initialize the randomizer
-    ret = wc_InitRng(&rng);
-    if(ret < 0) { return -1;}
     
     for (;i < 3;i++) { 
-         ret = wc_RsaPublicEncrypt(P_DATA[i], P_SIZE[i], E_DATA[i], RSA_KEY_LENGTH,&AP_PUB_FOR_AT, &rng);
+         ret = wc_RsaPublicEncrypt(P_DATA[i], P_SIZE[i], E_DATA[i], RSA_KEY_LENGTH, &AP_PUB_FOR_AT, &COMP_rng);
          if(ret < 0) { return -1;}
     }
     
@@ -443,7 +436,12 @@ int main(void) {
 
     // Enable library's randomness generator
     MXC_TRNG_Init();
-
+   
+   // Initialize the Randomizer :P
+    if(wc_InitRng(&COMP_rng) < 0) { 
+         return -1;
+    }
+   
     // Encrypt component's AT data with AP's public key
     if (init_at_pub_key(&AP_PUB_FOR_AT, (uint8_t*)AP_PUB_AT, sizeof(AP_PUB_AT)) < 0
     || encrypt_AT() < 0 )
@@ -456,11 +454,7 @@ int main(void) {
     {
         return -1;
     }
-
-    // Initialize the Randomizer :P
-    if(wc_InitRng(&COMP_rng) < 0) { 
-         return -1;
-    }
+   
     // Seed our random number generator using build time secret
     srand((unsigned int)COMP_SEED);
 

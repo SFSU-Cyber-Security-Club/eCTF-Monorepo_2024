@@ -134,8 +134,6 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     int preserved_len = 0;
     int ret = 0;
 
-    return send_packet(address, len, buffer);
-
     ret = wc_RsaPublicEncrypt(buffer, len, encrypt_buffer, sizeof(encrypt_buffer), &COMP_PUB, &AP_rng);
     if(ret < 0) { 
          print_error("Public encryption failed - CRITICAL string is: %s and return is :%d and len is :%d!!!\n", buffer, ret, len);
@@ -143,12 +141,15 @@ int secure_send(uint8_t address, uint8_t* buffer, uint8_t len) {
     }
     
     // Naturally, our function fails if the length exceeds the size of the i2c message bus which is 255
-    preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer); // CHANGED LENGTH TEMPORARY PLEASE REVERT BACK
+    preserved_len = send_packet(address, (uint8_t)ret, encrypt_buffer); 
     if(preserved_len < 0) { 
          // print_error("Packet failed to send! %d \n", preserved_len); Don't print this out, messes with list output
          return ERROR_RETURN;
     }
-
+    
+    return preserved_len;
+    // Send out an acknowledge check here
+    
     // Send another message that digests the plaintext for message integrity
     if (hash(buffer, len , hash_out) != 0) {
 		print_error("Error: hash\n");
@@ -182,8 +183,6 @@ int secure_receive(i2c_addr_t address, uint8_t* buffer) {
     int preserved_len = 0;
     int len = 0;
 
-
-    return poll_and_receive_packet(address, buffer);
     // The ciphertext
     preserved_len = len = poll_and_receive_packet(address, buffer);
 
@@ -417,13 +416,10 @@ int scan_components(void) {
                 continue;
         }
          
-        print_debug("We have successfully send a message!\n");
-
         if(secure_receive(addr, receive_buffer) == ERROR_RETURN) {
                 continue;
         }
   
-        print_debug("Received! bingo bango %s \n", receive_buffer);
         // Success, device is present
         scan_message* scan = (scan_message*) receive_buffer;
         print_info("F>0x%08x\n", scan->component_id);
