@@ -126,7 +126,7 @@ RsaKey COMP_PUB;
  * This function must be implemented by your team to align with the security requirements.
 
 */
-int secure_send(uint8_t address, uint8_t* buffer, volatile uint8_t len) {
+int secure_send(uint8_t address, volatile uint8_t* buffer, volatile uint8_t len) {
     // Use components public key to send messages yay
     // Hash the original buffer first, and append this to the message
     uint8_t encrypt_buffer[MAX_I2C_MESSAGE_LEN-1]; // regardless of input, rsa ciphertext will be equal to the modulus
@@ -182,7 +182,7 @@ skip:
  * Securely receive data over I2C. This function is utilized in POST_BOOT functionality.
  * This function must be implemented by your team to align with the security requirements.
 */
-int secure_receive(i2c_addr_t address, uint8_t* buffer) {
+int secure_receive(i2c_addr_t address, volatile uint8_t* buffer) {
     // Use AP's private key to decrypt and validate the message 
     // Expect two messages.. the ciphertext and the hash
     uint8_t decrypted_buffer[MAX_I2C_MESSAGE_LEN-1];; 
